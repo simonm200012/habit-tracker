@@ -47,32 +47,59 @@ export default async function Dashboard() {
   );
   const foods = (foodRes.data ?? []) as FoodLog[];
 
+  const greeting = (() => {
+    const h = new Date().getHours();
+    if (h < 12) return "Good morning";
+    if (h < 18) return "Good afternoon";
+    return "Good evening";
+  })();
+  const name =
+    profile.display_name ??
+    user.email?.split("@")[0] ??
+    "there";
+
   return (
-    <main className="min-h-screen bg-neutral-50">
-      <header className="border-b border-neutral-200 bg-white">
+    <main className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-stone-100">
+      <header className="border-b border-slate-200/80 bg-white/70 backdrop-blur-md sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold">habit-tracker</h1>
-            <p className="text-xs text-neutral-500">
-              {new Date().toLocaleDateString(undefined, {
-                weekday: "long",
-                month: "long",
-                day: "numeric",
-              })}
-            </p>
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-slate-900 to-slate-700 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+              ht
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-slate-900 tracking-tight leading-none">
+                habit-tracker
+              </h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {new Date().toLocaleDateString(undefined, {
+                  weekday: "long",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-neutral-600 hidden sm:inline">
+            <span className="text-sm font-medium text-slate-700 hidden sm:inline">
               {profile.display_name ?? user.email}
             </span>
             <form action={logout}>
-              <button className="text-sm px-3 py-1.5 rounded-lg border border-neutral-200 hover:bg-neutral-100">
+              <button className="text-sm font-medium text-slate-700 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 transition">
                 Log out
               </button>
             </form>
           </div>
         </div>
       </header>
+
+      <div className="max-w-6xl mx-auto px-6 pt-8 pb-2">
+        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
+          {greeting}, <span className="text-slate-600">{name}.</span>
+        </h2>
+        <p className="text-sm text-slate-600 mt-1">
+          Here&apos;s how today is shaping up.
+        </p>
+      </div>
 
       <div className="max-w-6xl mx-auto p-6 grid gap-6 lg:grid-cols-3">
         <HabitsCard habits={habits} doneToday={doneToday} />

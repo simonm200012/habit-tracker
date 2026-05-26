@@ -15,52 +15,68 @@ async function LoginForm({
 }) {
   const sp = await searchParams;
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 to-sky-50 p-4">
-      <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-8">
-        <h1 className="text-2xl font-bold mb-1">habit-tracker</h1>
-        <p className="text-sm text-neutral-500 mb-6">Sign in to track your habits.</p>
-
-        <form className="space-y-3">
-          <input
-            type="email"
-            name="email"
-            placeholder="you@example.com"
-            required
-            className="w-full px-3 py-2 rounded-lg border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          />
-          <input
-            type="password"
-            name="password"
-            placeholder="password (min 6 chars)"
-            required
-            minLength={6}
-            className="w-full px-3 py-2 rounded-lg border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          />
-
-          {sp.error && (
-            <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{sp.error}</p>
-          )}
-          {sp.message && (
-            <p className="text-sm text-emerald-700 bg-emerald-50 px-3 py-2 rounded-lg">
-              {sp.message}
-            </p>
-          )}
-
-          <div className="flex gap-2 pt-1">
-            <button
-              formAction={login}
-              className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 rounded-lg transition"
-            >
-              Log in
-            </button>
-            <button
-              formAction={signup}
-              className="flex-1 bg-neutral-100 hover:bg-neutral-200 text-neutral-900 font-medium py-2 rounded-lg transition"
-            >
-              Sign up
-            </button>
+    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 via-slate-50 to-stone-100 p-4">
+      <div className="w-full max-w-sm">
+        <div className="flex items-center justify-center gap-3 mb-6">
+          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-slate-900 to-slate-700 flex items-center justify-center text-white font-bold shadow-lg shadow-slate-900/20">
+            ht
           </div>
-        </form>
+        </div>
+        <div className="bg-white rounded-2xl shadow-xl shadow-slate-900/5 ring-1 ring-slate-200/70 p-8">
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight mb-1">
+            Welcome back
+          </h1>
+          <p className="text-sm text-slate-600 mb-6">
+            Sign in to track your habits.
+          </p>
+
+          <form className="space-y-3">
+            <input
+              type="email"
+              name="email"
+              placeholder="you@example.com"
+              required
+              className="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition"
+            />
+            <input
+              type="password"
+              name="password"
+              placeholder="password (min 6 chars)"
+              required
+              minLength={6}
+              className="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition"
+            />
+
+            {sp.error && (
+              <p className="text-sm font-medium text-rose-700 bg-rose-50 ring-1 ring-rose-200 px-3 py-2 rounded-lg">
+                {sp.error}
+              </p>
+            )}
+            {sp.message && (
+              <p className="text-sm font-medium text-emerald-800 bg-emerald-50 ring-1 ring-emerald-200 px-3 py-2 rounded-lg">
+                {sp.message}
+              </p>
+            )}
+
+            <div className="flex gap-2 pt-2">
+              <button
+                formAction={login}
+                className="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 rounded-lg shadow-sm transition"
+              >
+                Log in
+              </button>
+              <button
+                formAction={signup}
+                className="flex-1 bg-white hover:bg-slate-50 text-slate-900 font-semibold py-2.5 rounded-lg border border-slate-200 transition"
+              >
+                Sign up
+              </button>
+            </div>
+          </form>
+        </div>
+        <p className="text-center text-xs text-slate-500 mt-6">
+          Your data stays private — row-level security in Supabase.
+        </p>
       </div>
     </main>
   );
