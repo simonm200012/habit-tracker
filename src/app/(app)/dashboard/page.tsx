@@ -8,6 +8,7 @@ import { CategoryRadialChart } from "@/components/charts/CategoryRadialChart";
 import { InsightCard } from "@/components/InsightCard";
 import { AchievementCard } from "@/components/AchievementCard";
 import { VacationButton } from "@/components/VacationButton";
+import { NotificationManager } from "@/components/NotificationManager";
 import { categoryMeta } from "@/lib/categories";
 import { evaluateAchievements } from "@/lib/achievements";
 import { generateInsights } from "@/lib/insights";
@@ -185,8 +186,20 @@ export default async function DashboardPage() {
       ? "Good afternoon"
       : "Good evening";
 
+  // Build reminders payload for notification manager (only habits with reminder_time set)
+  const remindersForNotif = habits
+    .filter((h) => h.reminder_time)
+    .map((h) => ({
+      habitId: h.id,
+      habitName: h.name,
+      time: h.reminder_time!,
+      frequency: h.frequency,
+      done: logsByHabit.get(h.id)?.has(todayIso) ?? false,
+    }));
+
   return (
     <main className="px-4 sm:px-6 lg:px-10 py-6 lg:py-8 max-w-7xl mx-auto">
+      <NotificationManager reminders={remindersForNotif} />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-7">
         <div>

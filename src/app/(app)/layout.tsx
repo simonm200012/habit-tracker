@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/nav/Sidebar";
+import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 import { maybeSeedSampleData } from "@/lib/seed";
 
 export default async function AppLayout({
@@ -21,6 +22,7 @@ export default async function AppLayout({
     <div className="min-h-screen flex flex-col lg:flex-row bg-slate-50">
       <Sidebar email={user.email ?? "you"} />
       <div className="flex-1 min-w-0">{children}</div>
+      <KeyboardShortcuts />
     </div>
   );
 }

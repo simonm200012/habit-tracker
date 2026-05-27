@@ -2,9 +2,25 @@
 
 import { useOptimistic, useTransition } from "react";
 import { toast } from "sonner";
+import confetti from "canvas-confetti";
 import { toggleHabitToday } from "@/app/actions";
 import { categoryMeta } from "@/lib/categories";
 import type { Habit } from "@/lib/types";
+
+function fireConfetti() {
+  const defaults = {
+    spread: 75,
+    startVelocity: 35,
+    decay: 0.92,
+    scalar: 0.9,
+    ticks: 120,
+    origin: { y: 0.55 },
+    colors: ["#10b981", "#0ea5e9", "#f59e0b", "#e11d48", "#7c3aed"],
+  };
+  confetti({ ...defaults, particleCount: 50, angle: 90 });
+  confetti({ ...defaults, particleCount: 30, angle: 60, origin: { x: 0.1, y: 0.6 } });
+  confetti({ ...defaults, particleCount: 30, angle: 120, origin: { x: 0.9, y: 0.6 } });
+}
 
 export function TodayHabitRow({
   habit,
@@ -36,8 +52,13 @@ export function TodayHabitRow({
       try {
         await toggleHabitToday(habit.id);
         if (nextDone) {
-          if (nextStreak >= 7 && nextStreak % 7 === 0) {
-            toast.success(`${habit.name} — ${nextStreak}-day streak 🔥`);
+          // Celebrate milestone streaks
+          const milestones = [7, 14, 30, 60, 100, 200, 365];
+          if (milestones.includes(nextStreak)) {
+            fireConfetti();
+            toast.success(`🎉 ${habit.name} — ${nextStreak}-day streak!`, {
+              duration: 4000,
+            });
           } else if (nextStreak === 1) {
             toast.success(`${habit.name} done — streak started`);
           } else {
