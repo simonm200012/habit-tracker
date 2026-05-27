@@ -1,10 +1,16 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { StatCard } from "@/components/StatCard";
 import { TodayHabitRow } from "@/components/TodayHabitRow";
 import { WeeklyBarChart } from "@/components/charts/WeeklyBarChart";
 import { CompletionAreaChart } from "@/components/charts/CompletionAreaChart";
 import { CategoryRadialChart } from "@/components/charts/CategoryRadialChart";
+import { InsightCard } from "@/components/InsightCard";
+import { AchievementCard } from "@/components/AchievementCard";
+import { VacationButton } from "@/components/VacationButton";
 import { categoryMeta } from "@/lib/categories";
+import { evaluateAchievements } from "@/lib/achievements";
+import { generateInsights } from "@/lib/insights";
 import {
   addDays,
   bestStreak,
@@ -27,7 +33,7 @@ export default async function DashboardPage() {
   const today = new Date();
   const startWindow = addDays(today, -89); // 90 days of logs is enough
 
-  const [habitsRes, logsRes] = await Promise.all([
+  const [habitsRes, logsRes, vacRes] = await Promise.all([
     supabase
       .from("habits")
       .select("*")
@@ -38,11 +44,42 @@ export default async function DashboardPage() {
       .from("habit_logs")
       .select("habit_id, logged_on")
       .gte("logged_on", isoDate(startWindow)),
+    supabase
+      .from("vacation_days")
+      .select("day")
+      .gte("day", isoDate(startWindow)),
   ]);
 
   const habits = (habitsRes.data ?? []) as Habit[];
   const logsByHabit = groupLogs(logsRes.data ?? []);
+  const vacationDays = new Set((vacRes.data ?? []).map((r) => r.day as string));
   const todayIso = isoDate(today);
+  const isVacationToday = vacationDays.has(todayIso);
+
+  // Smart insights + achievements
+  const insights = generateInsights({
+    habits,
+    logsByHabit,
+    vacationDays,
+    today,
+  });
+  const achievements = evaluateAchievements({
+    habits,
+    logsByHabit,
+    vacationDays,
+    today,
+  });
+  const unlockedCount = achievements.filter((a) => a.unlocked).length;
+  const featuredAchievements = achievements.slice(0, 4);
+
+  // Habit stacking: which habit triggers each one
+  const triggerForHabit = new Map<string, Habit>();
+  for (const h of habits) {
+    if (h.linked_to_habit_id) {
+      const trigger = habits.find((x) => x.id === h.linked_to_habit_id);
+      if (trigger) triggerForHabit.set(h.id, trigger);
+    }
+  }
 
   // Today summary
   const todaysHabits = habits.filter((h) => isScheduled(h, today));
@@ -51,9 +88,9 @@ export default async function DashboardPage() {
   ).length;
   const todayPct = todaysHabits.length === 0 ? 0 : Math.round((completedToday / todaysHabits.length) * 100);
 
-  // Total active streak (sum) and best streak
+  // Total active streak (sum) and best streak. Vacation days don't break streaks.
   const totalCurrentStreak = habits.reduce(
-    (s, h) => s + currentStreak(h, logsByHabit.get(h.id) ?? new Set()),
+    (s, h) => s + currentStreak(h, logsByHabit.get(h.id) ?? new Set(), today, vacationDays),
     0,
   );
   const longestStreak = habits.reduce(
@@ -166,6 +203,7 @@ export default async function DashboardPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <VacationButton isoDay={todayIso} initiallyOn={isVacationToday} />
           <div className="px-4 py-2.5 rounded-xl bg-white ring-1 ring-slate-200 shadow-sm">
             <p className="text-[10px] uppercase tracking-wider font-bold text-slate-500">
               Today
@@ -177,6 +215,36 @@ export default async function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {isVacationToday && (
+        <div className="mb-6 p-4 rounded-xl bg-amber-50/80 ring-1 ring-amber-200 flex items-start gap-3">
+          <span className="text-2xl">🏝️</span>
+          <div>
+            <p className="font-bold text-amber-900 text-sm tracking-tight">Skip day active</p>
+            <p className="text-xs text-amber-800 mt-0.5">
+              Streaks are paused for today — feel free to rest. Click <b>Skip day on</b> above to undo.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Smart insights */}
+      {insights.length > 0 && (
+        <section className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h2 className="text-sm font-bold uppercase tracking-wider text-slate-600">
+                Insights for you
+              </h2>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {insights.map((i) => (
+              <InsightCard key={i.id} insight={i} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -258,14 +326,21 @@ export default async function DashboardPage() {
             </div>
           ) : (
             <ul className="space-y-2">
-              {todaysHabits.map((h) => (
-                <TodayHabitRow
-                  key={h.id}
-                  habit={h}
-                  done={logsByHabit.get(h.id)?.has(todayIso) ?? false}
-                  streak={currentStreak(h, logsByHabit.get(h.id) ?? new Set())}
-                />
-              ))}
+              {todaysHabits.map((h) => {
+                const trigger = triggerForHabit.get(h.id);
+                const triggerDone = trigger
+                  ? logsByHabit.get(trigger.id)?.has(todayIso) ?? false
+                  : false;
+                return (
+                  <TodayHabitRow
+                    key={h.id}
+                    habit={h}
+                    done={logsByHabit.get(h.id)?.has(todayIso) ?? false}
+                    streak={currentStreak(h, logsByHabit.get(h.id) ?? new Set(), today, vacationDays)}
+                    stackTrigger={trigger ? { name: trigger.name, done: triggerDone } : null}
+                  />
+                );
+              })}
             </ul>
           )}
         </section>
@@ -329,6 +404,31 @@ export default async function DashboardPage() {
               No data yet.
             </p>
           )}
+        </section>
+
+        {/* Featured achievements */}
+        <section className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200/70 p-6 lg:col-span-3">
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <h2 className="text-base font-bold text-slate-900 tracking-tight">
+                Achievements
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5 tabular-nums">
+                {unlockedCount} of {achievements.length} unlocked
+              </p>
+            </div>
+            <Link
+              href="/achievements"
+              className="text-xs font-semibold text-slate-700 hover:text-slate-900 px-3 py-1.5 rounded-lg border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition"
+            >
+              View all →
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {featuredAchievements.map((a) => (
+              <AchievementCard key={a.id} a={a} />
+            ))}
+          </div>
         </section>
       </div>
     </main>

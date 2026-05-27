@@ -103,6 +103,35 @@ export async function reorderHabits(orderedIds: string[]) {
   revalidatePath("/", "layout");
 }
 
+/* ---------- vacation / skip days ---------- */
+
+export async function toggleVacationDay(isoDay: string) {
+  const { supabase, user } = await authed();
+  const { data: existing } = await supabase
+    .from("vacation_days")
+    .select("day")
+    .eq("user_id", user.id)
+    .eq("day", isoDay)
+    .maybeSingle();
+  if (existing) {
+    await supabase.from("vacation_days").delete().eq("user_id", user.id).eq("day", isoDay);
+  } else {
+    await supabase.from("vacation_days").insert({ user_id: user.id, day: isoDay, reason: "" });
+  }
+  revalidatePath("/", "layout");
+}
+
+/* ---------- habit stacking ---------- */
+
+export async function setHabitStack(habitId: string, linkedToId: string | null) {
+  const { supabase } = await authed();
+  await supabase
+    .from("habits")
+    .update({ linked_to_habit_id: linkedToId })
+    .eq("id", habitId);
+  revalidatePath("/", "layout");
+}
+
 /* ---------- daily journal ---------- */
 
 export async function saveDailyNote(isoDay: string, content: string) {

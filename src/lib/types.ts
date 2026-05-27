@@ -35,7 +35,14 @@ export type Habit = {
   goal_target: number;
   goal_unit: string;
   display_order: number;
+  linked_to_habit_id: string | null;
   created_at: string;
+};
+
+export type VacationDay = {
+  user_id: string;
+  day: string;
+  reason: string;
 };
 
 export type DailyNote = {

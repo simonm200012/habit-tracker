@@ -10,10 +10,12 @@ export function TodayHabitRow({
   habit,
   done,
   streak,
+  stackTrigger,
 }: {
   habit: Habit;
   done: boolean;
   streak: number;
+  stackTrigger?: { name: string; done: boolean } | null;
 }) {
   const [, startTransition] = useTransition();
   const [optimisticState, setOptimisticState] = useOptimistic(
@@ -107,7 +109,7 @@ export function TodayHabitRow({
         >
           {habit.name}
         </p>
-        <div className="flex items-center gap-2 mt-0.5">
+        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
           <span className={`text-[10px] font-bold uppercase tracking-wider ${cat.color}`}>
             {habit.category}
           </span>
@@ -117,6 +119,21 @@ export function TodayHabitRow({
               ? `${habit.goal_target}${habit.goal_unit ? " " + habit.goal_unit : ""}`
               : habit.frequency}
           </span>
+          {stackTrigger && (
+            <>
+              <span className="text-slate-300">·</span>
+              <span
+                className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md ring-1 ${
+                  stackTrigger.done
+                    ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
+                    : "bg-slate-100 text-slate-600 ring-slate-200"
+                }`}
+                title={`Stacked after ${stackTrigger.name}`}
+              >
+                {stackTrigger.done ? "↳ now" : `↳ after ${stackTrigger.name}`}
+              </span>
+            </>
+          )}
         </div>
       </a>
 

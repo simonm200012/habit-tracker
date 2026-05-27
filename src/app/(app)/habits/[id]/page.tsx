@@ -30,17 +30,24 @@ export default async function HabitDetailPage({
 
   const today = new Date();
   const start = addDays(today, -89);
-  const [habitRes, logsRes] = await Promise.all([
+  const [habitRes, logsRes, otherHabitsRes] = await Promise.all([
     supabase.from("habits").select("*").eq("id", id).maybeSingle(),
     supabase
       .from("habit_logs")
       .select("logged_on")
       .eq("habit_id", id)
       .gte("logged_on", isoDate(start)),
+    supabase
+      .from("habits")
+      .select("*")
+      .neq("id", id)
+      .eq("status", "active")
+      .order("display_order"),
   ]);
 
   const habit = habitRes.data as Habit | null;
   if (!habit) notFound();
+  const stackCandidates = (otherHabitsRes.data ?? []) as Habit[];
 
   const logs = new Set((logsRes.data ?? []).map((r) => r.logged_on));
   const cat = categoryMeta(habit.category);
@@ -162,7 +169,7 @@ export default async function HabitDetailPage({
         {/* Edit form */}
         <section className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200/70 p-6">
           <h2 className="text-base font-bold text-slate-900 tracking-tight mb-5">Settings</h2>
-          <HabitEditForm habit={habit} />
+          <HabitEditForm habit={habit} stackCandidates={stackCandidates} />
         </section>
 
         {/* 30 day strip */}

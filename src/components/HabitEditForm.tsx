@@ -5,9 +5,16 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { updateHabit, setHabitStatus, deleteHabit } from "@/app/actions";
 import { CATEGORIES } from "@/lib/categories";
+import { HabitStackPicker } from "@/components/HabitStackPicker";
 import type { Habit } from "@/lib/types";
 
-export function HabitEditForm({ habit }: { habit: Habit }) {
+export function HabitEditForm({
+  habit,
+  stackCandidates,
+}: {
+  habit: Habit;
+  stackCandidates: Habit[];
+}) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [saving, setSaving] = useState(false);
@@ -147,6 +154,10 @@ export function HabitEditForm({ habit }: { habit: Habit }) {
           defaultValue={habit.target_per_week}
           className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition tabular-nums"
         />
+      </div>
+
+      <div className="pt-2 border-t border-slate-100">
+        <HabitStackPicker habit={habit} candidates={stackCandidates} />
       </div>
 
       <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">

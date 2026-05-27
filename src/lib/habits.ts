@@ -32,25 +32,27 @@ export function isScheduled(habit: Pick<Habit, "frequency">, d: Date): boolean {
   return true;
 }
 
-/** Compute current streak ending today (consecutive scheduled days completed). */
+/** Compute current streak ending today (consecutive scheduled days completed). Vacation days are skipped. */
 export function currentStreak(
   habit: Pick<Habit, "frequency">,
   logs: Set<string>,
   today = new Date(),
+  vacationDays: Set<string> = new Set(),
 ): number {
   let streak = 0;
   let d = new Date(today);
   while (true) {
-    if (!isScheduled(habit, d)) {
+    const iso = isoDate(d);
+    if (vacationDays.has(iso) || !isScheduled(habit, d)) {
       d = addDays(d, -1);
       continue;
     }
-    if (logs.has(isoDate(d))) {
+    if (logs.has(iso)) {
       streak += 1;
       d = addDays(d, -1);
     } else {
       // Allow today to be incomplete without breaking the streak yet.
-      if (isoDate(d) === isoDate(today)) {
+      if (iso === isoDate(today)) {
         d = addDays(d, -1);
         continue;
       }

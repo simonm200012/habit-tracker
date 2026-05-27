@@ -26,6 +26,16 @@ const NAV = [
     label: "Analytics",
     icon: "M3 3v18h18M7 14l4-4 4 4 5-5",
   },
+  {
+    href: "/review",
+    label: "Weekly review",
+    icon: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z",
+  },
+  {
+    href: "/achievements",
+    label: "Achievements",
+    icon: "M12 15l-3.09 1.62L10 12 7 9l4.18-.36L12 5l1.82 3.64L18 9l-3 3 1.09 4.62z",
+  },
 ];
 
 export function Sidebar({ email }: { email: string }) {
