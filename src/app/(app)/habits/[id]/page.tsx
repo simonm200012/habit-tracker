@@ -13,6 +13,7 @@ import {
 } from "@/lib/habits";
 import { HabitEditForm } from "@/components/HabitEditForm";
 import { HabitStreakChart } from "@/components/charts/HabitStreakChart";
+import { HabitValueBarChart } from "@/components/charts/HabitValueBarChart";
 import { HabitDotStrip } from "@/components/HabitHeatmap";
 import type { Habit } from "@/lib/types";
 
@@ -34,7 +35,7 @@ export default async function HabitDetailPage({
     supabase.from("habits").select("*").eq("id", id).maybeSingle(),
     supabase
       .from("habit_logs")
-      .select("logged_on")
+      .select("logged_on, value")
       .eq("habit_id", id)
       .gte("logged_on", isoDate(start)),
     supabase
@@ -49,7 +50,13 @@ export default async function HabitDetailPage({
   if (!habit) notFound();
   const stackCandidates = (otherHabitsRes.data ?? []) as Habit[];
 
-  const logs = new Set((logsRes.data ?? []).map((r) => r.logged_on));
+  const rawLogs = (logsRes.data ?? []) as { logged_on: string; value: number | null }[];
+  const logs = new Set(rawLogs.map((r) => r.logged_on));
+  const valueByDay = new Map<string, number>();
+  for (const r of rawLogs) {
+    if (r.value !== null) valueByDay.set(r.logged_on, Number(r.value));
+  }
+  const isQuant = (habit.goal_unit ?? "").trim() !== "" && habit.goal_target > 1;
   const cat = categoryMeta(habit.category);
 
   const streak = currentStreak(habit, logs);
@@ -86,6 +93,26 @@ export default async function HabitDetailPage({
       scheduled: isScheduled(habit, d),
     });
   }
+
+  // Quant value bar data for last 30 days
+  const valueData = isQuant
+    ? Array.from({ length: 30 }).map((_, i) => {
+        const d = addDays(today, -(29 - i));
+        const iso = isoDate(d);
+        const v = valueByDay.get(iso) ?? 0;
+        return {
+          label: `${d.getMonth() + 1}/${d.getDate()}`,
+          value: v,
+          reached: v >= habit.goal_target,
+        };
+      })
+    : [];
+  const valueAvg = isQuant && valueData.length > 0
+    ? Math.round(
+        (valueData.reduce((s, x) => s + x.value, 0) / valueData.filter((x) => x.value > 0).length || 0) || 0,
+      )
+    : 0;
+  const valueTotal = isQuant ? valueData.reduce((s, x) => s + x.value, 0) : 0;
 
   return (
     <main className="px-4 sm:px-6 lg:px-10 py-6 lg:py-8 max-w-7xl mx-auto">
@@ -171,6 +198,42 @@ export default async function HabitDetailPage({
           <h2 className="text-base font-bold text-slate-900 tracking-tight mb-5">Settings</h2>
           <HabitEditForm habit={habit} stackCandidates={stackCandidates} />
         </section>
+
+        {/* Quantitative value chart */}
+        {isQuant && (
+          <section className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200/70 p-6 lg:col-span-3">
+            <div className="flex items-end justify-between mb-4 flex-wrap gap-3">
+              <div>
+                <h2 className="text-base font-bold text-slate-900 tracking-tight">
+                  {habit.goal_unit || "Values"} · last 30 days
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Goal {habit.goal_target} {habit.goal_unit} per day · green = goal reached
+                </p>
+              </div>
+              <div className="flex gap-4 text-xs">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider font-bold text-slate-500">Total</p>
+                  <p className="text-lg font-bold text-slate-900 tabular-nums">
+                    {valueTotal}<span className="text-xs text-slate-400 font-semibold ml-1">{habit.goal_unit}</span>
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider font-bold text-slate-500">Avg / logged day</p>
+                  <p className="text-lg font-bold text-slate-900 tabular-nums">
+                    {valueAvg}<span className="text-xs text-slate-400 font-semibold ml-1">{habit.goal_unit}</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+            <HabitValueBarChart
+              data={valueData}
+              target={habit.goal_target}
+              color={cat.hex}
+              unit={habit.goal_unit ?? ""}
+            />
+          </section>
+        )}
 
         {/* 30 day strip */}
         <section className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200/70 p-6 lg:col-span-3">

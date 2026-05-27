@@ -85,6 +85,30 @@ export async function toggleHabitToday(habitId: string) {
   await toggleHabitDate(habitId, iso);
 }
 
+/** Set a numeric value for a habit on a given date. Upserts. Passing null/0 clears the log. */
+export async function setHabitValue(habitId: string, isoDay: string, value: number | null) {
+  const { supabase, user } = await authed();
+
+  if (value === null || isNaN(value) || value <= 0) {
+    await supabase
+      .from("habit_logs")
+      .delete()
+      .eq("habit_id", habitId)
+      .eq("logged_on", isoDay);
+  } else {
+    await supabase.from("habit_logs").upsert(
+      {
+        habit_id: habitId,
+        user_id: user.id,
+        logged_on: isoDay,
+        value,
+      },
+      { onConflict: "habit_id,logged_on" },
+    );
+  }
+  revalidatePath("/", "layout");
+}
+
 export async function deleteHabit(habitId: string) {
   const { supabase } = await authed();
   await supabase.from("habits").delete().eq("id", habitId);
@@ -100,6 +124,41 @@ export async function reorderHabits(orderedIds: string[]) {
       supabase.from("habits").update({ display_order: idx + 1 }).eq("id", id),
     ),
   );
+  revalidatePath("/", "layout");
+}
+
+/* ---------- templates / bulk import ---------- */
+
+import { TEMPLATES } from "@/lib/templates";
+
+export async function applyTemplate(templateId: string) {
+  const { supabase, user } = await authed();
+  const tpl = TEMPLATES.find((t) => t.id === templateId);
+  if (!tpl) return;
+
+  // Find current max display_order
+  const { data: existing } = await supabase
+    .from("habits")
+    .select("display_order")
+    .eq("user_id", user.id)
+    .order("display_order", { ascending: false })
+    .limit(1);
+  const baseOrder = (existing?.[0]?.display_order ?? 0) + 1;
+
+  const rows = tpl.habits.map((h, i) => ({
+    user_id: user.id,
+    name: h.name,
+    category: h.category,
+    frequency: h.frequency,
+    difficulty: h.difficulty,
+    target_per_week: h.target_per_week,
+    goal_target: h.goal_target,
+    goal_unit: h.goal_unit,
+    display_order: baseOrder + i,
+    status: "active",
+    active: true,
+  }));
+  await supabase.from("habits").insert(rows);
   revalidatePath("/", "layout");
 }
 

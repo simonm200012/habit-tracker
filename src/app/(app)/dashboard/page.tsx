@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { StatCard } from "@/components/StatCard";
 import { TodayHabitRow } from "@/components/TodayHabitRow";
+import { QuantHabitRow } from "@/components/QuantHabitRow";
 import { WeeklyBarChart } from "@/components/charts/WeeklyBarChart";
 import { CompletionAreaChart } from "@/components/charts/CompletionAreaChart";
 import { CategoryRadialChart } from "@/components/charts/CategoryRadialChart";
@@ -43,7 +44,7 @@ export default async function DashboardPage() {
       .order("created_at"),
     supabase
       .from("habit_logs")
-      .select("habit_id, logged_on")
+      .select("habit_id, logged_on, value")
       .gte("logged_on", isoDate(startWindow)),
     supabase
       .from("vacation_days")
@@ -52,7 +53,19 @@ export default async function DashboardPage() {
   ]);
 
   const habits = (habitsRes.data ?? []) as Habit[];
-  const logsByHabit = groupLogs(logsRes.data ?? []);
+  const rawLogs = (logsRes.data ?? []) as { habit_id: string; logged_on: string; value: number | null }[];
+  const logsByHabit = groupLogs(rawLogs);
+  // habitId → isoDay → value (for quantitative habits)
+  const valuesByHabit = new Map<string, Map<string, number>>();
+  for (const r of rawLogs) {
+    if (r.value === null) continue;
+    let m = valuesByHabit.get(r.habit_id);
+    if (!m) {
+      m = new Map();
+      valuesByHabit.set(r.habit_id, m);
+    }
+    m.set(r.logged_on, Number(r.value));
+  }
   const vacationDays = new Set((vacRes.data ?? []).map((r) => r.day as string));
   const todayIso = isoDate(today);
   const isVacationToday = vacationDays.has(todayIso);
@@ -344,12 +357,32 @@ export default async function DashboardPage() {
                 const triggerDone = trigger
                   ? logsByHabit.get(trigger.id)?.has(todayIso) ?? false
                   : false;
+                const streak = currentStreak(
+                  h,
+                  logsByHabit.get(h.id) ?? new Set(),
+                  today,
+                  vacationDays,
+                );
+                const isQuant = (h.goal_unit ?? "").trim() !== "" && h.goal_target > 1;
+                if (isQuant) {
+                  const todayVal = valuesByHabit.get(h.id)?.get(todayIso) ?? null;
+                  return (
+                    <QuantHabitRow
+                      key={h.id}
+                      habit={h}
+                      todayValue={todayVal}
+                      isoDay={todayIso}
+                      streak={streak}
+                      stackTrigger={trigger ? { name: trigger.name, done: triggerDone } : null}
+                    />
+                  );
+                }
                 return (
                   <TodayHabitRow
                     key={h.id}
                     habit={h}
                     done={logsByHabit.get(h.id)?.has(todayIso) ?? false}
-                    streak={currentStreak(h, logsByHabit.get(h.id) ?? new Set(), today, vacationDays)}
+                    streak={streak}
                     stackTrigger={trigger ? { name: trigger.name, done: triggerDone } : null}
                   />
                 );

@@ -57,6 +57,7 @@ export type HabitLog = {
   id: string;
   habit_id: string;
   logged_on: string;
+  value: number | null;
 };
 
 export type WaterLog = {

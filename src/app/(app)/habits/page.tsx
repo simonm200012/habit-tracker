@@ -9,7 +9,9 @@ import {
   addDays,
 } from "@/lib/habits";
 import { HabitForm } from "@/components/HabitForm";
-import { SortableHabitsTable } from "@/components/SortableHabitsTable";
+import { HabitsFilterShell } from "@/components/HabitsFilterShell";
+import { TemplatePicker } from "@/components/TemplatePicker";
+import { ExportButton } from "@/components/ExportButton";
 import { setHabitStatus, deleteHabit } from "@/app/actions";
 import type { Habit } from "@/lib/types";
 
@@ -54,14 +56,18 @@ export default async function HabitsPage() {
 
   return (
     <main className="px-4 sm:px-6 lg:px-10 py-6 lg:py-8 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between mb-7">
+      <div className="flex items-end justify-between mb-7 flex-wrap gap-3">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">Habits</h1>
           <p className="text-slate-600 text-sm mt-1">
             {active.length} active · {paused.length} paused · {archived.length} archived
           </p>
         </div>
-        <HabitForm />
+        <div className="flex items-center gap-2 flex-wrap">
+          <ExportButton />
+          <TemplatePicker />
+          <HabitForm />
+        </div>
       </div>
 
       {/* Category chips */}
@@ -87,11 +93,11 @@ export default async function HabitsPage() {
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
           <div>
             <h2 className="text-base font-bold text-slate-900 tracking-tight">Active habits</h2>
-            <p className="text-xs text-slate-500 mt-0.5">Drag the handle to reorder · click a habit for details</p>
+            <p className="text-xs text-slate-500 mt-0.5">Drag the handle to reorder · search and filter below</p>
           </div>
           <span className="text-xs text-slate-500 font-semibold">{active.length} total</span>
         </div>
-        <SortableHabitsTable rows={activeRows} />
+        <HabitsFilterShell rows={activeRows} />
       </section>
 
       {(paused.length > 0 || archived.length > 0) && (

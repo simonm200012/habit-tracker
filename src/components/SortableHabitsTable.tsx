@@ -31,15 +31,28 @@ type Row = {
   rate30: number;
 };
 
-function DragHandle({ listeners, attributes }: { listeners?: ReturnType<typeof useSortable>["listeners"]; attributes?: ReturnType<typeof useSortable>["attributes"] }) {
+function DragHandle({
+  listeners,
+  attributes,
+  disabled,
+}: {
+  listeners?: ReturnType<typeof useSortable>["listeners"];
+  attributes?: ReturnType<typeof useSortable>["attributes"];
+  disabled?: boolean;
+}) {
   return (
     <button
       type="button"
-      {...listeners}
-      {...attributes}
-      className="cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-700 p-1 -ml-1 transition"
+      {...(disabled ? {} : listeners)}
+      {...(disabled ? {} : attributes)}
+      disabled={disabled}
+      className={`p-1 -ml-1 transition ${
+        disabled
+          ? "text-slate-200 cursor-not-allowed"
+          : "cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-700"
+      }`}
       aria-label="reorder"
-      title="Drag to reorder"
+      title={disabled ? "Clear filters to reorder" : "Drag to reorder"}
     >
       <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
         <circle cx="9" cy="6" r="1.5" /><circle cx="15" cy="6" r="1.5" />
@@ -50,8 +63,11 @@ function DragHandle({ listeners, attributes }: { listeners?: ReturnType<typeof u
   );
 }
 
-function SortableRow({ row }: { row: Row }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: row.habit.id });
+function SortableRow({ row, reorderable }: { row: Row; reorderable: boolean }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: row.habit.id,
+    disabled: !reorderable,
+  });
   const [, startTransition] = useTransition();
   const cat = categoryMeta(row.habit.category);
 
@@ -75,7 +91,7 @@ function SortableRow({ row }: { row: Row }) {
       className="hover:bg-slate-50/50 transition group bg-white"
     >
       <td className="px-3 py-4">
-        <DragHandle listeners={listeners} attributes={attributes} />
+        <DragHandle listeners={listeners} attributes={attributes} disabled={!reorderable} />
       </td>
       <td className="px-3 py-4">
         <Link href={`/habits/${row.habit.id}`} className="flex items-center gap-3 group/link">
@@ -159,7 +175,13 @@ function SortableRow({ row }: { row: Row }) {
   );
 }
 
-export function SortableHabitsTable({ rows: initialRows }: { rows: Row[] }) {
+export function SortableHabitsTable({
+  rows: initialRows,
+  reorderable = true,
+}: {
+  rows: Row[];
+  reorderable?: boolean;
+}) {
   const [rows, setRows] = useState(initialRows);
   const [, startTransition] = useTransition();
 
@@ -174,6 +196,7 @@ export function SortableHabitsTable({ rows: initialRows }: { rows: Row[] }) {
   );
 
   function handleDragEnd(event: DragEndEvent) {
+    if (!reorderable) return;
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     const oldIndex = rows.findIndex((r) => r.habit.id === active.id);
@@ -221,7 +244,7 @@ export function SortableHabitsTable({ rows: initialRows }: { rows: Row[] }) {
           <SortableContext items={rows.map((r) => r.habit.id)} strategy={verticalListSortingStrategy}>
             <tbody className="divide-y divide-slate-100">
               {rows.map((r) => (
-                <SortableRow key={r.habit.id} row={r} />
+                <SortableRow key={r.habit.id} row={r} reorderable={reorderable} />
               ))}
             </tbody>
           </SortableContext>
