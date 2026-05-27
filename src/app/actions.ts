@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
-async function userId() {
+async function authed() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -15,93 +15,78 @@ async function userId() {
 /* ---------- habits ---------- */
 
 export async function addHabit(formData: FormData) {
-  const { supabase, user } = await userId();
+  const { supabase, user } = await authed();
   const name = String(formData.get("name") ?? "").trim();
   if (!name) return;
-  const target = Number(formData.get("target_per_week") ?? 7);
   await supabase.from("habits").insert({
     user_id: user.id,
     name,
-    target_per_week: target,
-    icon: String(formData.get("icon") ?? ""),
+    category: String(formData.get("category") ?? "Health"),
+    frequency: String(formData.get("frequency") ?? "daily"),
+    difficulty: String(formData.get("difficulty") ?? "medium"),
+    target_per_week: Number(formData.get("target_per_week") ?? 7),
+    goal_target: Number(formData.get("goal_target") ?? 1),
+    goal_unit: String(formData.get("goal_unit") ?? ""),
+    reminder_time: String(formData.get("reminder_time") ?? "") || null,
+    status: "active",
+    active: true,
   });
-  revalidatePath("/");
+  revalidatePath("/", "layout");
 }
 
-export async function toggleHabitToday(habitId: string) {
-  const { supabase, user } = await userId();
-  const today = new Date().toISOString().slice(0, 10);
+export async function updateHabit(habitId: string, formData: FormData) {
+  const { supabase } = await authed();
+  await supabase
+    .from("habits")
+    .update({
+      name: String(formData.get("name") ?? "").trim(),
+      category: String(formData.get("category") ?? "Health"),
+      frequency: String(formData.get("frequency") ?? "daily"),
+      difficulty: String(formData.get("difficulty") ?? "medium"),
+      target_per_week: Number(formData.get("target_per_week") ?? 7),
+      goal_target: Number(formData.get("goal_target") ?? 1),
+      goal_unit: String(formData.get("goal_unit") ?? ""),
+      reminder_time: String(formData.get("reminder_time") ?? "") || null,
+    })
+    .eq("id", habitId);
+  revalidatePath("/", "layout");
+}
 
+export async function setHabitStatus(habitId: string, status: "active" | "paused" | "archived") {
+  const { supabase } = await authed();
+  await supabase
+    .from("habits")
+    .update({ status, active: status === "active" })
+    .eq("id", habitId);
+  revalidatePath("/", "layout");
+}
+
+export async function toggleHabitDate(habitId: string, isoDay: string) {
+  const { supabase, user } = await authed();
   const { data: existing } = await supabase
     .from("habit_logs")
     .select("id")
     .eq("habit_id", habitId)
-    .eq("logged_on", today)
+    .eq("logged_on", isoDay)
     .maybeSingle();
-
   if (existing) {
     await supabase.from("habit_logs").delete().eq("id", existing.id);
   } else {
     await supabase
       .from("habit_logs")
-      .insert({ habit_id: habitId, user_id: user.id, logged_on: today });
+      .insert({ habit_id: habitId, user_id: user.id, logged_on: isoDay });
   }
-  revalidatePath("/");
+  revalidatePath("/", "layout");
+}
+
+export async function toggleHabitToday(habitId: string) {
+  const today = new Date();
+  const iso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  await toggleHabitDate(habitId, iso);
 }
 
 export async function deleteHabit(habitId: string) {
-  const { supabase } = await userId();
+  const { supabase } = await authed();
   await supabase.from("habits").delete().eq("id", habitId);
-  revalidatePath("/");
-}
-
-/* ---------- water ---------- */
-
-export async function addWater(formData: FormData) {
-  const { supabase, user } = await userId();
-  const amount = Number(formData.get("amount_ml") ?? 0);
-  if (amount <= 0) return;
-  await supabase.from("water_logs").insert({ user_id: user.id, amount_ml: amount });
-  revalidatePath("/");
-}
-
-/* ---------- food ---------- */
-
-export async function addFood(formData: FormData) {
-  const { supabase, user } = await userId();
-  const name = String(formData.get("name") ?? "").trim();
-  if (!name) return;
-  await supabase.from("food_logs").insert({
-    user_id: user.id,
-    name,
-    calories: Number(formData.get("calories") ?? 0),
-    protein_g: Number(formData.get("protein_g") ?? 0),
-    fiber_g: Number(formData.get("fiber_g") ?? 0),
-    carbs_g: Number(formData.get("carbs_g") ?? 0),
-    fat_g: Number(formData.get("fat_g") ?? 0),
-  });
-  revalidatePath("/");
-}
-
-export async function deleteFood(id: string) {
-  const { supabase } = await userId();
-  await supabase.from("food_logs").delete().eq("id", id);
-  revalidatePath("/");
-}
-
-/* ---------- profile / goals ---------- */
-
-export async function updateGoals(formData: FormData) {
-  const { supabase, user } = await userId();
-  await supabase
-    .from("profiles")
-    .update({
-      daily_calorie_goal: Number(formData.get("daily_calorie_goal") ?? 2000),
-      daily_protein_goal_g: Number(formData.get("daily_protein_goal_g") ?? 150),
-      daily_fiber_goal_g: Number(formData.get("daily_fiber_goal_g") ?? 30),
-      daily_water_goal_ml: Number(formData.get("daily_water_goal_ml") ?? 2500),
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", user.id);
-  revalidatePath("/");
+  revalidatePath("/", "layout");
 }

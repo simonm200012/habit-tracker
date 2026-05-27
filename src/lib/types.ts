@@ -7,6 +7,18 @@ export type Profile = {
   daily_water_goal_ml: number;
 };
 
+export type HabitCategory =
+  | "Health"
+  | "Fitness"
+  | "Focus"
+  | "Learning"
+  | "Finance"
+  | "Mindfulness";
+
+export type HabitFrequency = "daily" | "weekdays" | "weekly";
+export type HabitDifficulty = "easy" | "medium" | "hard";
+export type HabitStatus = "active" | "paused" | "archived";
+
 export type Habit = {
   id: string;
   user_id: string;
@@ -15,6 +27,13 @@ export type Habit = {
   color: string;
   target_per_week: number;
   active: boolean;
+  category: HabitCategory;
+  frequency: HabitFrequency;
+  difficulty: HabitDifficulty;
+  status: HabitStatus;
+  reminder_time: string | null;
+  goal_target: number;
+  goal_unit: string;
   created_at: string;
 };
 
