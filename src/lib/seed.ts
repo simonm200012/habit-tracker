@@ -30,7 +30,7 @@ export async function maybeSeedSampleData() {
   if ((count ?? 0) > 0) return;
 
   // Insert habits
-  const rows = STARTER_HABITS.map((h) => ({
+  const rows = STARTER_HABITS.map((h, i) => ({
     user_id: user.id,
     name: h.name,
     color: h.color,
@@ -40,6 +40,7 @@ export async function maybeSeedSampleData() {
     difficulty: h.difficulty,
     goal_target: h.goal_target,
     goal_unit: h.goal_unit,
+    display_order: i + 1,
     status: "active",
     active: true,
   }));

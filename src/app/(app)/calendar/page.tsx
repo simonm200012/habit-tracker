@@ -7,6 +7,7 @@ import {
   isoDate,
 } from "@/lib/habits";
 import { HabitHeatmap, HabitDotStrip } from "@/components/HabitHeatmap";
+import { DailyJournal } from "@/components/DailyJournal";
 import type { Habit } from "@/lib/types";
 
 export default async function CalendarPage() {
@@ -19,20 +20,28 @@ export default async function CalendarPage() {
   const today = new Date();
   const startWindow = addDays(today, -120);
 
-  const [habitsRes, logsRes] = await Promise.all([
+  const todayIso = isoDate(today);
+  const [habitsRes, logsRes, noteRes] = await Promise.all([
     supabase
       .from("habits")
       .select("*")
       .eq("status", "active")
+      .order("display_order", { ascending: true })
       .order("created_at"),
     supabase
       .from("habit_logs")
       .select("habit_id, logged_on")
       .gte("logged_on", isoDate(startWindow)),
+    supabase
+      .from("daily_notes")
+      .select("content")
+      .eq("note_on", todayIso)
+      .maybeSingle(),
   ]);
 
   const habits = (habitsRes.data ?? []) as Habit[];
   const logsByHabit = groupLogs(logsRes.data ?? []);
+  const todayNote = (noteRes.data?.content as string | undefined) ?? "";
 
   // Monthly grid for current month
   const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -154,6 +163,11 @@ export default async function CalendarPage() {
             <p className="text-xs text-slate-500 mt-0.5">All habits combined</p>
           </div>
           <HabitHeatmap habits={habits} logsByHabit={logsByHabit} weeks={12} />
+        </section>
+
+        {/* Daily journal */}
+        <section className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200/70 p-6 lg:col-span-3">
+          <DailyJournal isoDay={todayIso} initial={todayNote} />
         </section>
 
         {/* Per-habit strips */}

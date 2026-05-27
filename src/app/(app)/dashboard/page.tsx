@@ -32,6 +32,7 @@ export default async function DashboardPage() {
       .from("habits")
       .select("*")
       .eq("status", "active")
+      .order("display_order", { ascending: true })
       .order("created_at"),
     supabase
       .from("habit_logs")

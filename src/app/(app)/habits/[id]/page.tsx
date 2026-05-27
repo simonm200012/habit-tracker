@@ -1,0 +1,200 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { categoryMeta } from "@/lib/categories";
+import {
+  addDays,
+  bestStreak,
+  completionRate,
+  currentStreak,
+  dateRange,
+  isScheduled,
+  isoDate,
+} from "@/lib/habits";
+import { HabitEditForm } from "@/components/HabitEditForm";
+import { HabitStreakChart } from "@/components/charts/HabitStreakChart";
+import { HabitDotStrip } from "@/components/HabitHeatmap";
+import type { Habit } from "@/lib/types";
+
+export default async function HabitDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const today = new Date();
+  const start = addDays(today, -89);
+  const [habitRes, logsRes] = await Promise.all([
+    supabase.from("habits").select("*").eq("id", id).maybeSingle(),
+    supabase
+      .from("habit_logs")
+      .select("logged_on")
+      .eq("habit_id", id)
+      .gte("logged_on", isoDate(start)),
+  ]);
+
+  const habit = habitRes.data as Habit | null;
+  if (!habit) notFound();
+
+  const logs = new Set((logsRes.data ?? []).map((r) => r.logged_on));
+  const cat = categoryMeta(habit.category);
+
+  const streak = currentStreak(habit, logs);
+  const best = bestStreak(habit, logs);
+  const rate30 = completionRate(habit, logs, 30);
+  const rate90 = completionRate(habit, logs, 90);
+
+  // Rolling 7-day rate over last 90 days (smoother chart line)
+  const chartData = dateRange(addDays(today, -89), today).map((iso) => {
+    const d = new Date(iso);
+    // average of trailing 7-day window
+    let s = 0;
+    let c = 0;
+    for (let i = 0; i < 7; i++) {
+      const dd = addDays(d, -i);
+      if (!isScheduled(habit, dd)) continue;
+      s += 1;
+      if (logs.has(isoDate(dd))) c += 1;
+    }
+    return {
+      label: `${d.getMonth() + 1}/${d.getDate()}`,
+      rate: s === 0 ? 0 : Math.round((c / s) * 100),
+    };
+  });
+
+  // Last 30 days check-off list
+  const recent: { iso: string; done: boolean; scheduled: boolean }[] = [];
+  for (let i = 0; i < 30; i++) {
+    const d = addDays(today, -i);
+    const iso = isoDate(d);
+    recent.push({
+      iso,
+      done: logs.has(iso),
+      scheduled: isScheduled(habit, d),
+    });
+  }
+
+  return (
+    <main className="px-4 sm:px-6 lg:px-10 py-6 lg:py-8 max-w-7xl mx-auto">
+      <Link
+        href="/habits"
+        className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-slate-900 mb-4 transition"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M19 12H5M12 19l-7-7 7-7" />
+        </svg>
+        All habits
+      </Link>
+
+      <div className="flex items-start gap-4 mb-7">
+        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ring-1 ${cat.bg} ${cat.ring} shrink-0`}>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className={cat.color}>
+            <path d={cat.icon} />
+          </svg>
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <span className={`text-[10px] font-bold uppercase tracking-wider ${cat.color}`}>{habit.category}</span>
+            <span className="text-slate-300">·</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+              {habit.frequency} · {habit.difficulty}
+            </span>
+            {habit.status !== "active" && (
+              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 ring-1 ring-slate-200">
+                {habit.status}
+              </span>
+            )}
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">{habit.name}</h1>
+          {habit.goal_target > 1 && (
+            <p className="text-sm text-slate-600 mt-1">
+              Goal: <b className="text-slate-900">{habit.goal_target}{habit.goal_unit ? " " + habit.goal_unit : ""}</b> · {habit.target_per_week}×/week
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200/70 p-5">
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Current streak</p>
+          <p className="text-3xl font-bold text-slate-900 tracking-tight mt-1.5 tabular-nums">
+            <span className="text-amber-600 mr-1">🔥</span>{streak}
+            <span className="text-lg text-slate-400 font-semibold ml-1">days</span>
+          </p>
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200/70 p-5">
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Best streak</p>
+          <p className="text-3xl font-bold text-slate-900 tracking-tight mt-1.5 tabular-nums">
+            {best}<span className="text-lg text-slate-400 font-semibold ml-1">days</span>
+          </p>
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200/70 p-5">
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-500">30-day rate</p>
+          <p className={`text-3xl font-bold tracking-tight mt-1.5 tabular-nums ${rate30 >= 80 ? "text-emerald-700" : rate30 >= 50 ? "text-amber-700" : "text-rose-700"}`}>
+            {rate30}<span className="text-lg text-slate-400 font-semibold">%</span>
+          </p>
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200/70 p-5">
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-500">90-day rate</p>
+          <p className="text-3xl font-bold text-slate-900 tracking-tight mt-1.5 tabular-nums">
+            {rate90}<span className="text-lg text-slate-400 font-semibold">%</span>
+          </p>
+        </div>
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-5">
+        {/* Trend chart */}
+        <section className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200/70 p-6 lg:col-span-2">
+          <div className="mb-4">
+            <h2 className="text-base font-bold text-slate-900 tracking-tight">90-day trend</h2>
+            <p className="text-xs text-slate-500 mt-0.5">Rolling 7-day completion rate</p>
+          </div>
+          <HabitStreakChart data={chartData} color={cat.hex} />
+        </section>
+
+        {/* Edit form */}
+        <section className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200/70 p-6">
+          <h2 className="text-base font-bold text-slate-900 tracking-tight mb-5">Settings</h2>
+          <HabitEditForm habit={habit} />
+        </section>
+
+        {/* 30 day strip */}
+        <section className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200/70 p-6 lg:col-span-3">
+          <h2 className="text-base font-bold text-slate-900 tracking-tight mb-4">Last 30 days</h2>
+          <HabitDotStrip habit={habit} logs={logs} />
+
+          <div className="grid grid-cols-7 sm:grid-cols-10 gap-2 mt-5">
+            {recent.map((r) => {
+              const d = new Date(r.iso);
+              return (
+                <div
+                  key={r.iso}
+                  className={`text-center py-2 rounded-lg text-xs ${
+                    !r.scheduled
+                      ? "bg-slate-50 text-slate-400"
+                      : r.done
+                      ? "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200"
+                      : "bg-rose-50 text-rose-700 ring-1 ring-rose-200"
+                  }`}
+                  title={r.iso}
+                >
+                  <div className="font-bold tabular-nums">{d.getDate()}</div>
+                  <div className="text-[9px] font-semibold uppercase tracking-wider opacity-70">
+                    {d.toLocaleDateString(undefined, { weekday: "short" }).slice(0, 2)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      </div>
+    </main>
+  );
+}

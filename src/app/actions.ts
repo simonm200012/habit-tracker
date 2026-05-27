@@ -90,3 +90,39 @@ export async function deleteHabit(habitId: string) {
   await supabase.from("habits").delete().eq("id", habitId);
   revalidatePath("/", "layout");
 }
+
+/** Persist new ordering for a list of habit ids. */
+export async function reorderHabits(orderedIds: string[]) {
+  const { supabase } = await authed();
+  // Update each row's display_order in sequence. Few rows; safe to await individually.
+  await Promise.all(
+    orderedIds.map((id, idx) =>
+      supabase.from("habits").update({ display_order: idx + 1 }).eq("id", id),
+    ),
+  );
+  revalidatePath("/", "layout");
+}
+
+/* ---------- daily journal ---------- */
+
+export async function saveDailyNote(isoDay: string, content: string) {
+  const { supabase, user } = await authed();
+  if (!content.trim()) {
+    await supabase
+      .from("daily_notes")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("note_on", isoDay);
+  } else {
+    await supabase.from("daily_notes").upsert(
+      {
+        user_id: user.id,
+        note_on: isoDay,
+        content,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id,note_on" },
+    );
+  }
+  revalidatePath("/", "layout");
+}

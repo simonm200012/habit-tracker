@@ -34,7 +34,16 @@ export type Habit = {
   reminder_time: string | null;
   goal_target: number;
   goal_unit: string;
+  display_order: number;
   created_at: string;
+};
+
+export type DailyNote = {
+  id: string;
+  user_id: string;
+  note_on: string;
+  content: string;
+  updated_at: string;
 };
 
 export type HabitLog = {
