@@ -45,6 +45,41 @@ export type VacationDay = {
   reason: string;
 };
 
+export type PublicProfile = {
+  user_id: string;
+  slug: string;
+  display_name: string | null;
+  bio: string;
+  is_public: boolean;
+  show_streaks: boolean;
+  show_achievements: boolean;
+  updated_at: string;
+};
+
+export type Partnership = {
+  user_a: string;
+  user_b: string;
+  accepted_at: string;
+};
+
+export type Challenge = {
+  id: string;
+  name: string;
+  description: string;
+  category: HabitCategory;
+  starts_on: string;
+  ends_on: string;
+  creator_id: string;
+  invite_code: string;
+  created_at: string;
+};
+
+export type ChallengeMember = {
+  challenge_id: string;
+  user_id: string;
+  joined_at: string;
+};
+
 export type DailyNote = {
   id: string;
   user_id: string;

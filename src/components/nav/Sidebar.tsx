@@ -42,6 +42,11 @@ const NAV = [
     label: "Morning brief",
     icon: "M3 9h18M3 4h18v16H3zM8 4v5M16 4v5",
   },
+  {
+    href: "/social",
+    label: "Social",
+    icon: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75",
+  },
 ];
 
 export function Sidebar({ email }: { email: string }) {
