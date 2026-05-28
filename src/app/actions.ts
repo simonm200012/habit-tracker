@@ -217,6 +217,10 @@ export async function saveNotificationPrefs(formData: FormData) {
     const v = Number(formData.get(name));
     return Number.isFinite(v) ? v : fallback;
   };
+  // digest_email: empty string clears the override and falls back to auth email
+  const digestEmailRaw = String(formData.get("digest_email") ?? "").trim();
+  const digestEmail = digestEmailRaw.length > 0 ? digestEmailRaw.slice(0, 254) : null;
+
   await supabase.from("notification_prefs").upsert(
     {
       user_id: user.id,
@@ -229,6 +233,7 @@ export async function saveNotificationPrefs(formData: FormData) {
       morning_brief_hour: Math.max(0, Math.min(23, numOr("morning_brief_hour", 7))),
       evening_alert_hour: Math.max(0, Math.min(23, numOr("evening_alert_hour", 20))),
       timezone: String(formData.get("timezone") ?? "UTC").slice(0, 64),
+      digest_email: digestEmail,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "user_id" },

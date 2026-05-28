@@ -115,9 +115,11 @@ export default async function SettingsPage() {
             morning_brief_hour: prefs?.morning_brief_hour ?? 7,
             evening_alert_hour: prefs?.evening_alert_hour ?? 20,
             timezone: prefs?.timezone ?? "UTC",
+            digest_email: (prefs?.digest_email as string | null) ?? null,
           }}
           emailConfigured={emailConfigured}
           pushConfigured={pushConfigured}
+          authEmail={user.email ?? null}
         />
       </section>
 

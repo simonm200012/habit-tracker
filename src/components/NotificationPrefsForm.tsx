@@ -15,16 +15,19 @@ type Prefs = {
   morning_brief_hour: number;
   evening_alert_hour: number;
   timezone: string;
+  digest_email: string | null;
 };
 
 export function NotificationPrefsForm({
   prefs,
   emailConfigured,
   pushConfigured,
+  authEmail,
 }: {
   prefs: Prefs;
   emailConfigured: boolean;
   pushConfigured: boolean;
+  authEmail: string | null;
 }) {
   const [pending, startTransition] = useTransition();
   const detectedTz = typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : "UTC";
@@ -81,6 +84,25 @@ export function NotificationPrefsForm({
       <input type="hidden" name="timezone" defaultValue={prefs.timezone ?? detectedTz} />
       <input type="hidden" name="morning_brief_hour" defaultValue={prefs.morning_brief_hour ?? 7} />
       <input type="hidden" name="evening_alert_hour" defaultValue={prefs.evening_alert_hour ?? 20} />
+
+      {/* Digest delivery email override */}
+      <div className="p-4 rounded-xl bg-slate-50/60 ring-1 ring-slate-200">
+        <label className="block text-xs font-bold uppercase tracking-wide text-slate-700 mb-1">
+          Send digests to
+        </label>
+        <input
+          type="email"
+          name="digest_email"
+          defaultValue={prefs.digest_email ?? ""}
+          placeholder={authEmail ?? "you@example.com"}
+          className="w-full sm:w-96 px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition"
+        />
+        <p className="text-[11px] text-slate-500 mt-1.5 leading-relaxed">
+          Leave blank to use your account email ({authEmail ?? "n/a"}). Use this if you signed up
+          for Resend with a different address — Resend&apos;s testing mode only delivers to your
+          Resend signup email until you verify a domain.
+        </p>
+      </div>
 
       <button
         type="submit"

@@ -292,14 +292,20 @@ export async function loadUserContext(
   admin: SupabaseClient,
   userId: string,
 ): Promise<UserContext> {
-  const [profileRes, userRes] = await Promise.all([
+  const [profileRes, prefsRes, userRes] = await Promise.all([
     admin.from("profiles").select("display_name").eq("id", userId).maybeSingle(),
+    admin.from("notification_prefs").select("digest_email").eq("user_id", userId).maybeSingle(),
     admin.auth.admin.getUserById(userId),
   ]);
 
-  const email = userRes.data?.user?.email ?? null;
+  const authEmail = userRes.data?.user?.email ?? null;
+  // Override delivery address from prefs when set, otherwise use the Supabase
+  // auth email. Lets users on Resend's testing tier route digests to their
+  // verified address without owning a domain.
+  const override = (prefsRes.data?.digest_email as string | null) ?? null;
+  const email = (override && override.trim()) || authEmail;
   const displayName =
-    (profileRes.data?.display_name as string | null) ?? email?.split("@")[0] ?? "you";
+    (profileRes.data?.display_name as string | null) ?? authEmail?.split("@")[0] ?? "you";
 
   return { userId, displayName, email };
 }
