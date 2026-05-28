@@ -35,7 +35,7 @@ export default async function DashboardPage() {
   const today = new Date();
   const startWindow = addDays(today, -89); // 90 days of logs is enough
 
-  const [habitsRes, logsRes, vacRes] = await Promise.all([
+  const [habitsRes, logsRes, vacRes, profileRes] = await Promise.all([
     supabase
       .from("habits")
       .select("*")
@@ -50,6 +50,11 @@ export default async function DashboardPage() {
       .from("vacation_days")
       .select("day")
       .gte("day", isoDate(startWindow)),
+    supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", user.id)
+      .maybeSingle(),
   ]);
 
   const habits = (habitsRes.data ?? []) as Habit[];
@@ -191,7 +196,11 @@ export default async function DashboardPage() {
     fill: categoryMeta(name).hex,
   }));
 
-  const userName = user.email?.split("@")[0] ?? "there";
+  const userName =
+    (profileRes.data?.display_name as string | null) ??
+    (user.user_metadata?.display_name as string | undefined) ??
+    user.email?.split("@")[0] ??
+    "there";
   const greet =
     today.getHours() < 12
       ? "Good morning"

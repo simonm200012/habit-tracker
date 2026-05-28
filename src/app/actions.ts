@@ -191,6 +191,30 @@ export async function setHabitStack(habitId: string, linkedToId: string | null) 
   revalidatePath("/", "layout");
 }
 
+/* ---------- account ---------- */
+
+export async function updateDisplayName(formData: FormData) {
+  const { supabase, user } = await authed();
+  const raw = String(formData.get("display_name") ?? "").trim();
+  // 1-40 chars, no extra normalization; null clears the name
+  const display_name = raw === "" ? null : raw.slice(0, 40);
+  await supabase
+    .from("profiles")
+    .upsert(
+      {
+        id: user.id,
+        display_name,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "id" },
+    );
+  // Also keep auth user_metadata in sync so it travels with the session
+  await supabase.auth.updateUser({
+    data: { display_name },
+  });
+  revalidatePath("/", "layout");
+}
+
 /* ---------- daily journal ---------- */
 
 export async function saveDailyNote(isoDay: string, content: string) {
