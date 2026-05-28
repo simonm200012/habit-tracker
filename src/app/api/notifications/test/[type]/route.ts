@@ -57,23 +57,42 @@ export async function POST(
       emailSubject: `[Test] ${payload.emailSubject}`,
     };
 
+    // Diagnostics: how many subscriptions does this user have?
+    const { count: subCount } = await admin
+      .from("push_subscriptions")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id);
+
     const result = await dispatchToUser(admin, user.id, ctx.email, payload, {
       push: true,
       email: true,
     });
+
+    // Build a precise hint based on what actually happened.
+    const hints: string[] = [];
+    if (result.pushSent === 0 && (subCount ?? 0) === 0) {
+      hints.push("No push subscriptions on file. Click 'Enable on this device' first.");
+    }
+    if (result.pushSent === 0 && (subCount ?? 0) > 0 && result.pushGone > 0) {
+      hints.push(
+        `${result.pushGone} stale subscription(s) removed. Re-enable on this device to subscribe with current VAPID keys.`,
+      );
+    }
+    if (!result.emailSent) {
+      const hasResend = Boolean(process.env.RESEND_API_KEY && process.env.RESEND_FROM);
+      if (!hasResend) hints.push("Resend env vars not configured.");
+      else if (!ctx.email) hints.push("No email address on file.");
+    }
 
     return NextResponse.json({
       ok: true,
       type,
       pushSent: result.pushSent,
       pushGone: result.pushGone,
+      subscriptionsOnFile: subCount ?? 0,
       emailSent: result.emailSent,
-      errors: result.errors.slice(0, 3),
-      // Helpful diagnostics
-      hint:
-        result.pushSent === 0 && !result.emailSent
-          ? "Nothing was sent. Subscribe a device for push, or configure Resend (RESEND_API_KEY + RESEND_FROM) for email."
-          : undefined,
+      errors: result.errors.slice(0, 5),
+      hint: hints.join(" "),
     });
   } catch (e) {
     return NextResponse.json(

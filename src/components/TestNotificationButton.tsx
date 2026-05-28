@@ -28,8 +28,25 @@ export function TestNotificationButton({
       const parts: string[] = [];
       if (data.pushSent > 0) parts.push(`${data.pushSent} push`);
       if (data.emailSent) parts.push(`email`);
+      const errs = Array.isArray(data.errors) ? data.errors : [];
+      const gone = data.pushGone > 0 ? `${data.pushGone} stale push subscription removed.` : "";
+
       if (parts.length === 0) {
-        toast.message(data.hint || "Nothing was sent (no devices/email configured).");
+        // Nothing actually sent — show why.
+        const lines = [
+          data.hint || "Nothing was sent.",
+          gone,
+          ...errs.map((e: string) => `• ${e}`),
+        ].filter(Boolean);
+        toast.error(lines.join("\n"), { duration: 12_000 });
+      } else if (errs.length > 0 || gone) {
+        // Partial success
+        toast.warning(
+          [`Sent: ${parts.join(" + ")}`, gone, ...errs.map((e: string) => `• ${e}`)]
+            .filter(Boolean)
+            .join("\n"),
+          { duration: 10_000 },
+        );
       } else {
         toast.success(`Test sent: ${parts.join(" + ")}`);
       }
