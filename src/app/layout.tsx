@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import { PWAClient } from "@/components/PWAClient";
+import { ThemeProvider, THEME_BOOT_SCRIPT } from "@/components/ThemeProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -48,21 +49,31 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col">
-        {children}
-        <PWAClient />
-        <Toaster
-          position="bottom-right"
-          richColors
-          closeButton
-          toastOptions={{
-            style: {
-              fontFamily: "var(--font-geist-sans)",
-              fontWeight: 500,
-            },
-          }}
+      <head>
+        <script
+          // Boot script runs before paint to set theme — avoids flash of wrong theme.
+          dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }}
         />
+      </head>
+      <body className="min-h-full flex flex-col">
+        <ThemeProvider>
+          {children}
+          <PWAClient />
+          <Toaster
+            position="bottom-right"
+            richColors
+            closeButton
+            theme="system"
+            toastOptions={{
+              style: {
+                fontFamily: "var(--font-geist-sans)",
+                fontWeight: 500,
+              },
+            }}
+          />
+        </ThemeProvider>
       </body>
     </html>
   );

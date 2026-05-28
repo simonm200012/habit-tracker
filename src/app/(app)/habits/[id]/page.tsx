@@ -15,6 +15,7 @@ import { HabitEditForm } from "@/components/HabitEditForm";
 import { HabitStreakChart } from "@/components/charts/HabitStreakChart";
 import { HabitValueBarChart } from "@/components/charts/HabitValueBarChart";
 import { HabitDotStrip } from "@/components/HabitHeatmap";
+import { StreakShareButton } from "@/components/StreakShareButton";
 import type { Habit } from "@/lib/types";
 
 export default async function HabitDetailPage({
@@ -152,6 +153,16 @@ export default async function HabitDetailPage({
             </p>
           )}
         </div>
+        {streak > 0 && (
+          <StreakShareButton
+            habitName={habit.name}
+            category={habit.category}
+            streak={streak}
+            best={best}
+            rate30={rate30}
+            rate90={rate90}
+          />
+        )}
       </div>
 
       {/* Stats */}

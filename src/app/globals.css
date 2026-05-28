@@ -1,8 +1,23 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #f8fafc;
   --foreground: #0a0a0a;
+  --accent-hex: #0f172a;
+}
+
+[data-accent="slate"]   { --accent-hex: #0f172a; }
+[data-accent="emerald"] { --accent-hex: #059669; }
+[data-accent="sky"]     { --accent-hex: #0284c7; }
+[data-accent="violet"]  { --accent-hex: #7c3aed; }
+[data-accent="rose"]    { --accent-hex: #e11d48; }
+[data-accent="amber"]   { --accent-hex: #d97706; }
+
+.dark {
+  --background: #020617;
+  --foreground: #f1f5f9;
 }
 
 @theme inline {
@@ -31,3 +46,125 @@ body {
   100% { transform: scale(1); }
 }
 .animate-pop { animation: pop 220ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+/* ============================================================
+   Dark mode utility overrides
+   Maps Tailwind's slate/white palette to dark surfaces when the
+   <html> element carries .dark. Avoids needing to touch every
+   component class.
+   ============================================================ */
+
+.dark {
+  color-scheme: dark;
+}
+
+/* Surfaces */
+.dark .bg-white                 { background-color: #0f172a !important; }   /* slate-900 */
+.dark .bg-slate-50              { background-color: #020617 !important; }   /* slate-950 */
+.dark .bg-slate-100             { background-color: #1e293b !important; }   /* slate-800 */
+.dark .bg-slate-50\/30          { background-color: rgba(15, 23, 42, 0.4) !important; }
+.dark .bg-slate-50\/50          { background-color: rgba(15, 23, 42, 0.5) !important; }
+.dark .bg-slate-50\/60          { background-color: rgba(15, 23, 42, 0.55) !important; }
+.dark .bg-slate-100\/60         { background-color: rgba(30, 41, 59, 0.6) !important; }
+.dark .bg-slate-100\/80         { background-color: rgba(30, 41, 59, 0.85) !important; }
+.dark .bg-white\/70             { background-color: rgba(15, 23, 42, 0.7) !important; }
+
+/* Gradients on body / cards */
+.dark .from-slate-100           { --tw-gradient-from: #020617 var(--tw-gradient-from-position) !important; }
+.dark .via-slate-50             { --tw-gradient-via: #0f172a var(--tw-gradient-via-position) !important; }
+.dark .to-stone-100             { --tw-gradient-to: #0f172a var(--tw-gradient-to-position) !important; }
+
+/* Text */
+.dark .text-slate-900           { color: #f1f5f9 !important; }   /* slate-100 */
+.dark .text-slate-800           { color: #e2e8f0 !important; }   /* slate-200 */
+.dark .text-slate-700           { color: #cbd5e1 !important; }   /* slate-300 */
+.dark .text-slate-600           { color: #94a3b8 !important; }   /* slate-400 */
+.dark .text-slate-500           { color: #64748b !important; }   /* slate-500 */
+.dark .text-slate-400           { color: #475569 !important; }   /* slate-600 */
+.dark .text-slate-300           { color: #334155 !important; }   /* slate-700 */
+.dark .placeholder\:text-slate-400::placeholder { color: #475569 !important; }
+
+/* Borders & rings */
+.dark .border-slate-200         { border-color: #1e293b !important; }
+.dark .border-slate-100         { border-color: #1e293b !important; }
+.dark .border-slate-200\/80     { border-color: rgba(30, 41, 59, 0.85) !important; }
+.dark .ring-slate-200,
+.dark .ring-slate-200\/60,
+.dark .ring-slate-200\/70       { --tw-ring-color: rgba(30, 41, 59, 0.85) !important; }
+.dark .ring-slate-300           { --tw-ring-color: #334155 !important; }
+.dark .ring-slate-100           { --tw-ring-color: #1e293b !important; }
+.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]) { border-color: #1e293b !important; }
+.dark .divide-slate-100         { border-color: #1e293b !important; }
+
+/* Hovers */
+.dark .hover\:bg-slate-50:hover  { background-color: #1e293b !important; }
+.dark .hover\:bg-slate-100:hover { background-color: #1e293b !important; }
+.dark .hover\:border-slate-300:hover { border-color: #475569 !important; }
+.dark .hover\:bg-slate-50\/50:hover { background-color: rgba(30, 41, 59, 0.5) !important; }
+
+/* Sidebar active item — keep readable */
+.dark .bg-slate-900             { background-color: #1e293b !important; }
+.dark .hover\:bg-slate-800:hover { background-color: #334155 !important; }
+
+/* Soft category tints — keep their hue but dim background */
+.dark .bg-emerald-50            { background-color: rgba(16, 185, 129, 0.15) !important; }
+.dark .bg-sky-50                { background-color: rgba(14, 165, 233, 0.15) !important; }
+.dark .bg-amber-50              { background-color: rgba(217, 119, 6, 0.15) !important; }
+.dark .bg-rose-50               { background-color: rgba(225, 29, 72, 0.15) !important; }
+.dark .bg-violet-50             { background-color: rgba(124, 58, 237, 0.15) !important; }
+.dark .bg-orange-50             { background-color: rgba(234, 88, 12, 0.15) !important; }
+.dark .bg-yellow-50             { background-color: rgba(202, 138, 4, 0.15) !important; }
+.dark .bg-emerald-50\/50,
+.dark .bg-emerald-50\/60        { background-color: rgba(16, 185, 129, 0.1) !important; }
+.dark .bg-amber-50\/60,
+.dark .bg-amber-50\/70,
+.dark .bg-amber-50\/80          { background-color: rgba(217, 119, 6, 0.1) !important; }
+.dark .bg-rose-50\/70           { background-color: rgba(225, 29, 72, 0.1) !important; }
+.dark .bg-emerald-50\/70        { background-color: rgba(16, 185, 129, 0.1) !important; }
+
+.dark .ring-emerald-100,
+.dark .ring-emerald-200         { --tw-ring-color: rgba(16, 185, 129, 0.4) !important; }
+.dark .ring-sky-100,
+.dark .ring-sky-200             { --tw-ring-color: rgba(14, 165, 233, 0.4) !important; }
+.dark .ring-amber-100,
+.dark .ring-amber-200           { --tw-ring-color: rgba(217, 119, 6, 0.4) !important; }
+.dark .ring-rose-100,
+.dark .ring-rose-200            { --tw-ring-color: rgba(225, 29, 72, 0.4) !important; }
+.dark .ring-violet-100,
+.dark .ring-violet-200          { --tw-ring-color: rgba(124, 58, 237, 0.4) !important; }
+
+.dark .text-emerald-700         { color: #34d399 !important; }
+.dark .text-emerald-800         { color: #6ee7b7 !important; }
+.dark .text-sky-700,
+.dark .text-sky-800             { color: #38bdf8 !important; }
+.dark .text-amber-700,
+.dark .text-amber-800,
+.dark .text-amber-900           { color: #fbbf24 !important; }
+.dark .text-rose-600,
+.dark .text-rose-700            { color: #fb7185 !important; }
+.dark .text-orange-700          { color: #fb923c !important; }
+.dark .text-violet-700          { color: #a78bfa !important; }
+.dark .text-yellow-800          { color: #fde047 !important; }
+
+/* Skeleton */
+.dark .from-slate-200           { --tw-gradient-from: #1e293b var(--tw-gradient-from-position) !important; }
+.dark .via-slate-100            { --tw-gradient-via: #0f172a var(--tw-gradient-via-position) !important; }
+.dark .to-slate-200             { --tw-gradient-to: #1e293b var(--tw-gradient-to-position) !important; }
+
+/* Form controls inherit colors from body, but native picker styling needs a hint */
+.dark input,
+.dark textarea,
+.dark select {
+  color-scheme: dark;
+}
+
+/* Charts: tooltip & cartesian gridlines tweaks */
+.dark .recharts-cartesian-grid line { stroke: #1e293b !important; }
+.dark .recharts-tooltip-wrapper > div {
+  background-color: #0f172a !important;
+  border-color: #1e293b !important;
+  color: #f1f5f9 !important;
+}
+
+/* Modal backdrops */
+.dark .bg-slate-900\/40         { background-color: rgba(2, 6, 23, 0.7) !important; }

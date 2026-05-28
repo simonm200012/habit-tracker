@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { logout } from "@/app/login/actions";
+import { ThemeControls } from "./ThemeControls";
 
 const NAV = [
   {
@@ -125,6 +126,10 @@ export function Sidebar({ email }: { email: string }) {
             );
           })}
         </nav>
+
+        <div className="px-4 py-3 border-t border-slate-200">
+          <ThemeControls />
+        </div>
 
         <div className="p-3 border-t border-slate-200">
           <div className="flex items-center gap-3 px-3 py-2">
