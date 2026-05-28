@@ -38,6 +38,11 @@ const NAV = [
     icon: "M12 15l-3.09 1.62L10 12 7 9l4.18-.36L12 5l1.82 3.64L18 9l-3 3 1.09 4.62z",
   },
   {
+    href: "/levels",
+    label: "Levels",
+    icon: "M3 12l3-3 4 4 8-8 3 3M21 21H3",
+  },
+  {
     href: "/digest",
     label: "Morning brief",
     icon: "M3 9h18M3 4h18v16H3zM8 4v5M16 4v5",

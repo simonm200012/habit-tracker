@@ -241,6 +241,28 @@ export async function saveNotificationPrefs(formData: FormData) {
   revalidatePath("/settings");
 }
 
+export async function createShortcutToken(label: string): Promise<{ id: string; token: string; label: string }> {
+  const { supabase, user } = await authed();
+  const token = (typeof crypto !== "undefined" && "randomUUID" in crypto)
+    ? crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "").slice(0, 16)
+    : Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+  const cleanLabel = (label || "Shortcut").slice(0, 60);
+  const { data, error } = await supabase
+    .from("shortcut_tokens")
+    .insert({ user_id: user.id, token, label: cleanLabel })
+    .select("id, token, label")
+    .single();
+  if (error) throw new Error(error.message);
+  revalidatePath("/settings");
+  return data;
+}
+
+export async function deleteShortcutToken(id: string): Promise<void> {
+  const { supabase, user } = await authed();
+  await supabase.from("shortcut_tokens").delete().eq("id", id).eq("user_id", user.id);
+  revalidatePath("/settings");
+}
+
 export async function regenerateToken(kind: "ical" | "health"): Promise<string> {
   const { supabase, user } = await authed();
   // Generate UUID locally

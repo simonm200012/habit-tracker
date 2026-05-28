@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { CompletionAreaChart } from "@/components/charts/CompletionAreaChart";
 import { DayOfWeekChart } from "@/components/charts/DayOfWeekChart";
+import { CorrelationsCard } from "@/components/CorrelationsCard";
+import { pairwiseCorrelations } from "@/lib/correlations";
 import { categoryMeta } from "@/lib/categories";
 import {
   addDays,
@@ -31,6 +33,7 @@ export default async function AnalyticsPage() {
 
   const habits = (habitsRes.data ?? []) as Habit[];
   const logsByHabit = groupLogs(logsRes.data ?? []);
+  const correlations = pairwiseCorrelations(habits, logsRes.data ?? [], start, today);
 
   // 90-day completion area
   const areaData = dateRange(addDays(today, -89), today).map((iso) => {
@@ -170,6 +173,11 @@ export default async function AnalyticsPage() {
           </div>
           <DayOfWeekChart data={dowData} />
         </section>
+      </div>
+
+      {/* Correlations */}
+      <div className="mb-6">
+        <CorrelationsCard correlations={correlations} />
       </div>
 
       {/* Top performers & weak spots */}

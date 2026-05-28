@@ -10,6 +10,9 @@ import { InsightCard } from "@/components/InsightCard";
 import { AchievementCard } from "@/components/AchievementCard";
 import { VacationButton } from "@/components/VacationButton";
 import { NotificationManager } from "@/components/NotificationManager";
+import { LevelWidget } from "@/components/LevelWidget";
+import { DailyQuestsCard } from "@/components/DailyQuestsCard";
+import { computeLevel, longStreakExtendedToday, questsForDay } from "@/lib/leveling";
 import { categoryMeta } from "@/lib/categories";
 import { evaluateAchievements } from "@/lib/achievements";
 import { generateInsights } from "@/lib/insights";
@@ -35,7 +38,7 @@ export default async function DashboardPage() {
   const today = new Date();
   const startWindow = addDays(today, -89); // 90 days of logs is enough
 
-  const [habitsRes, logsRes, vacRes, profileRes] = await Promise.all([
+  const [habitsRes, logsRes, vacRes, profileRes, journalRes, questRes, allLogsRes] = await Promise.all([
     supabase
       .from("habits")
       .select("*")
@@ -55,6 +58,18 @@ export default async function DashboardPage() {
       .select("display_name")
       .eq("id", user.id)
       .maybeSingle(),
+    supabase
+      .from("daily_notes")
+      .select("day")
+      .eq("user_id", user.id)
+      .eq("day", isoDate(today)),
+    supabase
+      .from("daily_quests")
+      .select("quest_id")
+      .eq("user_id", user.id)
+      .eq("day", isoDate(today)),
+    // For accurate XP totals we need ALL historical logs (groupLogs derives streaks from window, but XP counts everything).
+    supabase.from("habit_logs").select("habit_id, logged_on"),
   ]);
 
   const habits = (habitsRes.data ?? []) as Habit[];
@@ -208,6 +223,48 @@ export default async function DashboardPage() {
       ? "Good afternoon"
       : "Good evening";
 
+  /* ============================================================
+   * Gamification — XP / Level / Daily Quests
+   * ============================================================ */
+  const allLogs = (allLogsRes.data ?? []) as Array<{ habit_id: string; logged_on: string }>;
+  const levelSnapshot = computeLevel(habits, allLogs, vacationDays, today);
+
+  // Daily quest computation
+  const todaysHabitIds = new Set<string>();
+  const categoriesTouched = new Set<string>();
+  let hasMorningCheck = false;
+  let hasEveningCheck = false;
+  for (const l of allLogs) {
+    if (l.logged_on === todayIso) {
+      todaysHabitIds.add(l.habit_id);
+      const h = habits.find((x) => x.id === l.habit_id);
+      if (h) categoriesTouched.add(h.category);
+    }
+  }
+  // Time-of-day heuristic: we don't have log timestamps, so anchor to
+  // server "now" — if any log exists today, assume the check-off happened
+  // before noon if it's still morning; treat evening similarly.
+  const nowHour = today.getHours();
+  if (todaysHabitIds.size > 0) {
+    if (nowHour < 12) hasMorningCheck = true;
+    if (nowHour >= 18) hasEveningCheck = true;
+  }
+  const longStreakExtended = longStreakExtendedToday(habits, allLogs, vacationDays, today);
+  const journalDone = (journalRes.data ?? []).length > 0;
+  const completedQuestIds = new Set(((questRes.data ?? []) as Array<{ quest_id: string }>).map((q) => q.quest_id));
+  const quests = questsForDay(
+    todayIso,
+    levelSnapshot.level,
+    completedQuestIds,
+    habits,
+    todaysHabitIds,
+    categoriesTouched.size,
+    journalDone,
+    hasMorningCheck,
+    hasEveningCheck,
+    longStreakExtended,
+  );
+
   // Build reminders payload for notification manager (only habits with reminder_time set)
   const remindersForNotif = habits
     .filter((h) => h.reminder_time)
@@ -262,6 +319,14 @@ export default async function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* Level + Daily quests */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <LevelWidget snapshot={levelSnapshot} />
+        <div className="md:col-span-2">
+          <DailyQuestsCard quests={quests} level={levelSnapshot.level} />
+        </div>
+      </div>
 
       {/* Smart insights */}
       {insights.length > 0 && (

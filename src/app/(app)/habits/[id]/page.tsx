@@ -64,6 +64,9 @@ export default async function HabitDetailPage({
   const best = bestStreak(habit, logs);
   const rate30 = completionRate(habit, logs, 30);
   const rate90 = completionRate(habit, logs, 90);
+  // Streak milestone predictions
+  const { predictMilestones, summarizeNextMilestone } = await import("@/lib/predictions");
+  const predictions = predictMilestones(habit, streak, today);
 
   // Rolling 7-day rate over last 90 days (smoother chart line)
   const chartData = dateRange(addDays(today, -89), today).map((iso) => {
@@ -164,6 +167,29 @@ export default async function HabitDetailPage({
           />
         )}
       </div>
+
+      {/* Predictions */}
+      {predictions.length > 0 && streak > 0 && (
+        <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-800 text-white shadow-sm">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+            If you keep going
+          </p>
+          <p className="text-base font-semibold text-white mb-3">
+            {summarizeNextMilestone(predictions[0])}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {predictions.slice(1).map((p) => (
+              <div
+                key={p.milestone}
+                className="px-3 py-1.5 rounded-lg bg-white/10 text-xs font-bold text-white tabular-nums"
+              >
+                {p.milestone}d ·{" "}
+                {p.date.toLocaleDateString("en", { month: "short", day: "numeric" })}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

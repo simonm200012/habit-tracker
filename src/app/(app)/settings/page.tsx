@@ -5,6 +5,7 @@ import { NotificationPrefsForm } from "@/components/NotificationPrefsForm";
 import { PushSubscriptionButton } from "@/components/PushSubscriptionButton";
 import { IntegrationsSection } from "@/components/IntegrationsSection";
 import { SetupChecklist } from "@/components/SetupChecklist";
+import { ShortcutsSection } from "@/components/ShortcutsSection";
 
 export const dynamic = "force-dynamic";
 
@@ -15,10 +16,22 @@ export default async function SettingsPage() {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const [profileRes, prefsRes] = await Promise.all([
+  const [profileRes, prefsRes, tokensRes] = await Promise.all([
     supabase.from("profiles").select("display_name").eq("id", user.id).maybeSingle(),
     supabase.from("notification_prefs").select("*").eq("user_id", user.id).maybeSingle(),
+    supabase
+      .from("shortcut_tokens")
+      .select("id, token, label, created_at, last_used_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false }),
   ]);
+  const shortcutTokens = tokensRes.data as Array<{
+    id: string;
+    token: string;
+    label: string;
+    created_at: string;
+    last_used_at: string | null;
+  }> | null;
 
   const currentName: string =
     (profileRes.data?.display_name as string | null) ??
@@ -134,6 +147,17 @@ export default async function SettingsPage() {
           initialIcalToken={(prefs?.ical_token as string) ?? ""}
           initialHealthToken={(prefs?.health_token as string) ?? ""}
         />
+      </section>
+
+      {/* iOS Shortcuts / Siri */}
+      <section className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200/70 p-6">
+        <div className="mb-5">
+          <h2 className="text-base font-bold text-slate-900 tracking-tight">iOS Shortcuts / Siri</h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            One-tap check-off from your home screen or Apple Watch. Token-protected, scoped to your account.
+          </p>
+        </div>
+        <ShortcutsSection baseUrl={baseUrl} initialTokens={shortcutTokens ?? []} />
       </section>
 
       {/* Email */}
