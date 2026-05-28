@@ -32,8 +32,11 @@ export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const isAuthRoute = pathname.startsWith("/login") || pathname.startsWith("/auth");
   const isPublicRoute = pathname.startsWith("/u/"); // public profiles
+  // API routes manage their own auth (Supabase user, cron secret, or URL token).
+  // Don't redirect them to /login — they should respond directly with 401/200/etc.
+  const isApiRoute = pathname.startsWith("/api/");
 
-  if (!user && !isAuthRoute && !isPublicRoute) {
+  if (!user && !isAuthRoute && !isPublicRoute && !isApiRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
