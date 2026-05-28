@@ -1,10 +1,15 @@
 import webpush from "web-push";
 
+// The public key is exposed to the client (NEXT_PUBLIC_*) but is the same
+// key the server uses for signing the JWT. Accept either name so the
+// checklist on /settings and the actual send path agree.
+function vapidPublicKey(): string | undefined {
+  return process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || process.env.VAPID_PUBLIC_KEY;
+}
+
 export function isPushConfigured(): boolean {
   return Boolean(
-    process.env.VAPID_PUBLIC_KEY &&
-      process.env.VAPID_PRIVATE_KEY &&
-      process.env.VAPID_SUBJECT,
+    vapidPublicKey() && process.env.VAPID_PRIVATE_KEY && process.env.VAPID_SUBJECT,
   );
 }
 
@@ -13,7 +18,7 @@ function ensureConfigured() {
   if (configured || !isPushConfigured()) return;
   webpush.setVapidDetails(
     process.env.VAPID_SUBJECT!,
-    process.env.VAPID_PUBLIC_KEY!,
+    vapidPublicKey()!,
     process.env.VAPID_PRIVATE_KEY!,
   );
   configured = true;
