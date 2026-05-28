@@ -4,6 +4,7 @@ import { AccountNameForm } from "@/components/AccountNameForm";
 import { NotificationPrefsForm } from "@/components/NotificationPrefsForm";
 import { PushSubscriptionButton } from "@/components/PushSubscriptionButton";
 import { IntegrationsSection } from "@/components/IntegrationsSection";
+import { SetupChecklist } from "@/components/SetupChecklist";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +41,13 @@ export default async function SettingsPage() {
   const pushConfigured = Boolean(
     process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY,
   );
+  const cronConfigured = Boolean(process.env.CRON_SECRET);
+  const serviceRoleConfigured = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
+
+  const { count: pushSubCount } = await supabase
+    .from("push_subscriptions")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", user.id);
 
   // Build base URL
   const h = await headers();
@@ -84,8 +92,18 @@ export default async function SettingsPage() {
       <section className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200/70 p-6">
         <div className="mb-5">
           <h2 className="text-base font-bold text-slate-900 tracking-tight">Notification preferences</h2>
-          <p className="text-xs text-slate-500 mt-0.5">Choose what's sent when.</p>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Choose what's sent when. Click <strong>Test send</strong> next to any row to fire it now.
+          </p>
         </div>
+        <SetupChecklist
+          pushConfigured={pushConfigured}
+          emailConfigured={emailConfigured}
+          cronConfigured={cronConfigured}
+          serviceRoleConfigured={serviceRoleConfigured}
+          pushSubscriptionCount={pushSubCount ?? 0}
+          hasEmailAddress={Boolean(user.email)}
+        />
         <NotificationPrefsForm
           prefs={{
             morning_brief_email: prefs?.morning_brief_email ?? false,
