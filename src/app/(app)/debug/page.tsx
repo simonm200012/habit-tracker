@@ -18,22 +18,23 @@ async function runChecks(): Promise<{ checks: Check[]; userId: string | null; em
 
   const checks: Check[] = [];
 
-  async function probe(name: string, run: () => Promise<{ error: unknown; data?: unknown }>) {
+  async function probe(name: string, run: () => PromiseLike<unknown>) {
     try {
-      const { error, data } = await run();
-      if (error) {
-        const msg = (error as { message?: string }).message ?? String(error);
-        checks.push({ name, ok: false, detail: msg });
+      const res = (await run()) as { error?: { message?: string } | null; data?: unknown; count?: number | null };
+      if (res?.error) {
+        checks.push({ name, ok: false, detail: res.error.message ?? String(res.error) });
       } else {
-        const count = Array.isArray(data) ? data.length : data ? 1 : 0;
+        const count = Array.isArray(res?.data)
+          ? res.data.length
+          : typeof res?.count === "number"
+          ? res.count
+          : res?.data
+          ? 1
+          : 0;
         checks.push({ name, ok: true, detail: `OK · returned ${count} row${count === 1 ? "" : "s"}` });
       }
     } catch (e) {
-      checks.push({
-        name,
-        ok: false,
-        detail: e instanceof Error ? e.message : String(e),
-      });
+      checks.push({ name, ok: false, detail: e instanceof Error ? e.message : String(e) });
     }
   }
 
