@@ -131,10 +131,10 @@ export async function reorderHabits(orderedIds: string[]) {
 
 import { TEMPLATES } from "@/lib/templates";
 
-export async function applyTemplate(templateId: string) {
+export async function applyTemplate(templateId: string): Promise<{ inserted: number }> {
   const { supabase, user } = await authed();
   const tpl = TEMPLATES.find((t) => t.id === templateId);
-  if (!tpl) return;
+  if (!tpl) throw new Error("Template not found");
 
   // Find current max display_order
   const { data: existing } = await supabase
@@ -158,8 +158,25 @@ export async function applyTemplate(templateId: string) {
     status: "active",
     active: true,
   }));
-  await supabase.from("habits").insert(rows);
+
+  const { data: inserted, error } = await supabase
+    .from("habits")
+    .insert(rows)
+    .select("id");
+
+  if (error) {
+    // Surface the real reason (RLS, missing column, constraint…) to the client
+    throw new Error(`Insert failed: ${error.message}`);
+  }
+  if (!inserted || inserted.length === 0) {
+    throw new Error("No habits were created (insert returned empty result).");
+  }
+
+  revalidatePath("/habits", "page");
+  revalidatePath("/dashboard", "page");
   revalidatePath("/", "layout");
+
+  return { inserted: inserted.length };
 }
 
 /* ---------- vacation / skip days ---------- */

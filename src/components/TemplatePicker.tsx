@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { applyTemplate } from "@/app/actions";
 import { categoryMeta } from "@/lib/categories";
 import { TEMPLATES, type HabitTemplate } from "@/lib/templates";
 
 export function TemplatePicker() {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<HabitTemplate | null>(null);
   const [pending, startTransition] = useTransition();
@@ -15,12 +17,14 @@ export function TemplatePicker() {
     if (!selected) return;
     startTransition(async () => {
       try {
-        await applyTemplate(selected.id);
-        toast.success(`Added ${selected.habits.length} habits from ${selected.name}`);
+        const { inserted } = await applyTemplate(selected.id);
+        toast.success(`Added ${inserted} habits from ${selected.name}`);
         setOpen(false);
         setSelected(null);
-      } catch {
-        toast.error("Couldn't add template");
+        // Force the (server) habits page to refetch with the new rows
+        router.refresh();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Couldn't add template");
       }
     });
   }
