@@ -1,5 +1,5 @@
-// habit-tracker service worker — minimal offline shell.
-const CACHE_VERSION = "ht-v1";
+// habit-tracker service worker — offline shell + push notifications.
+const CACHE_VERSION = "ht-v2";
 const SHELL_ASSETS = [
   "/manifest.json",
   "/icon-192.png",
@@ -23,14 +23,10 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// Network-first for navigations (so fresh content always wins when online),
-// stale-while-revalidate for static assets.
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;
   const url = new URL(req.url);
-
-  // Skip cross-origin and Supabase requests
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/_next/data/")) return;
 
@@ -47,7 +43,6 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Static assets: stale-while-revalidate
   if (
     url.pathname.startsWith("/_next/static/") ||
     url.pathname.endsWith(".png") ||
@@ -68,4 +63,49 @@ self.addEventListener("fetch", (event) => {
       }),
     );
   }
+});
+
+// ============== Push notifications ==============
+
+self.addEventListener("push", (event) => {
+  let payload = { title: "habit-tracker", body: "You have a reminder.", url: "/dashboard", tag: undefined };
+  try {
+    if (event.data) {
+      const parsed = event.data.json();
+      payload = { ...payload, ...parsed };
+    }
+  } catch (e) {
+    // text fallback
+    try {
+      payload.body = event.data ? event.data.text() : payload.body;
+    } catch (_) {}
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(payload.title, {
+      body: payload.body,
+      icon: "/icon-192.png",
+      badge: "/icon-192.png",
+      tag: payload.tag,
+      data: { url: payload.url },
+      requireInteraction: false,
+    }),
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = (event.notification.data && event.notification.data.url) || "/dashboard";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if ("focus" in client) {
+          client.focus();
+          if ("navigate" in client) client.navigate(target);
+          return;
+        }
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(target);
+    }),
+  );
 });

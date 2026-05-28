@@ -208,6 +208,48 @@ export async function setHabitStack(habitId: string, linkedToId: string | null) 
   revalidatePath("/", "layout");
 }
 
+/* ---------- notification + integration preferences ---------- */
+
+export async function saveNotificationPrefs(formData: FormData) {
+  const { supabase, user } = await authed();
+  const cb = (name: string) => formData.get(name) === "on";
+  const numOr = (name: string, fallback: number) => {
+    const v = Number(formData.get(name));
+    return Number.isFinite(v) ? v : fallback;
+  };
+  await supabase.from("notification_prefs").upsert(
+    {
+      user_id: user.id,
+      morning_brief_email: cb("morning_brief_email"),
+      morning_brief_push: cb("morning_brief_push"),
+      evening_alert_email: cb("evening_alert_email"),
+      evening_alert_push: cb("evening_alert_push"),
+      weekly_review_email: cb("weekly_review_email"),
+      weekly_review_push: cb("weekly_review_push"),
+      morning_brief_hour: Math.max(0, Math.min(23, numOr("morning_brief_hour", 7))),
+      evening_alert_hour: Math.max(0, Math.min(23, numOr("evening_alert_hour", 20))),
+      timezone: String(formData.get("timezone") ?? "UTC").slice(0, 64),
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id" },
+  );
+  revalidatePath("/settings");
+}
+
+export async function regenerateToken(kind: "ical" | "health"): Promise<string> {
+  const { supabase, user } = await authed();
+  // Generate UUID locally
+  const newToken = (typeof crypto !== "undefined" && "randomUUID" in crypto)
+    ? crypto.randomUUID().replace(/-/g, "")
+    : Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+  const col = kind === "ical" ? "ical_token" : "health_token";
+  await supabase
+    .from("notification_prefs")
+    .upsert({ user_id: user.id, [col]: newToken, updated_at: new Date().toISOString() }, { onConflict: "user_id" });
+  revalidatePath("/settings");
+  return newToken;
+}
+
 /* ---------- account ---------- */
 
 export async function updateDisplayName(formData: FormData) {
