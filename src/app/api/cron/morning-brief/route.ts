@@ -20,18 +20,18 @@ export async function GET(req: NextRequest) {
     const nowUtc = new Date();
     const todayIso = isoDate(nowUtc);
 
-    // 1) Find all opted-in users whose local-hour == their morning_brief_hour
+    // Vercel Hobby cron runs once daily at a fixed UTC time, so we send to all
+    // opted-in users (the per-user "preferred hour" field is informational only
+    // unless you upgrade to Pro + an hourly cron schedule).
     const { data: allPrefs } = await admin
       .from("notification_prefs")
-      .select("user_id, morning_brief_email, morning_brief_push, morning_brief_hour, timezone");
+      .select("user_id, morning_brief_email, morning_brief_push");
 
-    const due = (allPrefs ?? []).filter((p) => {
-      if (!p.morning_brief_email && !p.morning_brief_push) return false;
-      const localHour = localHourFor(nowUtc, p.timezone as string);
-      return localHour === (p.morning_brief_hour ?? 7);
-    });
+    const due = (allPrefs ?? []).filter(
+      (p) => p.morning_brief_email || p.morning_brief_push,
+    );
 
-    if (due.length === 0) return NextResponse.json({ ok: true, sent: 0, skipped: "no users due" });
+    if (due.length === 0) return NextResponse.json({ ok: true, sent: 0, skipped: "no users opted in" });
 
     const userIds = due.map((p) => p.user_id as string);
 
@@ -141,17 +141,3 @@ export async function GET(req: NextRequest) {
   }
 }
 
-function localHourFor(nowUtc: Date, tz: string | null | undefined): number {
-  try {
-    const fmt = new Intl.DateTimeFormat("en-US", {
-      hour: "numeric",
-      hour12: false,
-      timeZone: tz || "UTC",
-    });
-    const parts = fmt.formatToParts(nowUtc);
-    const h = parts.find((p) => p.type === "hour");
-    return h ? Number(h.value) % 24 : nowUtc.getUTCHours();
-  } catch {
-    return nowUtc.getUTCHours();
-  }
-}

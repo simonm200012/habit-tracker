@@ -17,13 +17,11 @@ export async function GET(req: NextRequest) {
 
     const { data: allPrefs } = await admin
       .from("notification_prefs")
-      .select("user_id, weekly_review_email, weekly_review_push, timezone");
+      .select("user_id, weekly_review_email, weekly_review_push");
 
-    const due = (allPrefs ?? []).filter((p) => {
-      if (!p.weekly_review_email && !p.weekly_review_push) return false;
-      const { weekday, hour } = localPartsFor(nowUtc, p.timezone as string);
-      return weekday === 0 && hour === 18; // Sunday 6pm local
-    });
+    const due = (allPrefs ?? []).filter(
+      (p) => p.weekly_review_email || p.weekly_review_push,
+    );
 
     if (due.length === 0) return NextResponse.json({ ok: true, sent: 0 });
 
@@ -141,20 +139,3 @@ export async function GET(req: NextRequest) {
   }
 }
 
-function localPartsFor(nowUtc: Date, tz: string | null | undefined): { weekday: number; hour: number } {
-  try {
-    const fmt = new Intl.DateTimeFormat("en-US", {
-      timeZone: tz || "UTC",
-      weekday: "short",
-      hour: "numeric",
-      hour12: false,
-    });
-    const parts = fmt.formatToParts(nowUtc);
-    const wd = parts.find((p) => p.type === "weekday")?.value ?? "Sun";
-    const h = parts.find((p) => p.type === "hour")?.value ?? String(nowUtc.getUTCHours());
-    const weekday = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(wd);
-    return { weekday, hour: Number(h) % 24 };
-  } catch {
-    return { weekday: nowUtc.getUTCDay(), hour: nowUtc.getUTCHours() };
-  }
-}

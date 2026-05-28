@@ -18,13 +18,11 @@ export async function GET(req: NextRequest) {
 
     const { data: allPrefs } = await admin
       .from("notification_prefs")
-      .select("user_id, evening_alert_email, evening_alert_push, evening_alert_hour, timezone");
+      .select("user_id, evening_alert_email, evening_alert_push");
 
-    const due = (allPrefs ?? []).filter((p) => {
-      if (!p.evening_alert_email && !p.evening_alert_push) return false;
-      const localHour = localHourFor(nowUtc, p.timezone as string);
-      return localHour === (p.evening_alert_hour ?? 20);
-    });
+    const due = (allPrefs ?? []).filter(
+      (p) => p.evening_alert_email || p.evening_alert_push,
+    );
 
     if (due.length === 0) return NextResponse.json({ ok: true, sent: 0 });
 
@@ -131,12 +129,3 @@ export async function GET(req: NextRequest) {
   }
 }
 
-function localHourFor(nowUtc: Date, tz: string | null | undefined): number {
-  try {
-    const fmt = new Intl.DateTimeFormat("en-US", { hour: "numeric", hour12: false, timeZone: tz || "UTC" });
-    const h = fmt.formatToParts(nowUtc).find((p) => p.type === "hour");
-    return h ? Number(h.value) % 24 : nowUtc.getUTCHours();
-  } catch {
-    return nowUtc.getUTCHours();
-  }
-}
