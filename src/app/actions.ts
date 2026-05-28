@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getSubscription, FREE_HABIT_LIMIT } from "@/lib/billing";
 
 async function authed() {
   const supabase = await createClient();
@@ -18,6 +19,22 @@ export async function addHabit(formData: FormData) {
   const { supabase, user } = await authed();
   const name = String(formData.get("name") ?? "").trim();
   if (!name) return;
+
+  // Free plan habit cap (counts only active habits)
+  const sub = await getSubscription(user.id);
+  if (sub.plan === "free") {
+    const { count } = await supabase
+      .from("habits")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("status", "active");
+    if ((count ?? 0) >= FREE_HABIT_LIMIT) {
+      throw new Error(
+        `Free plan is limited to ${FREE_HABIT_LIMIT} active habits. Upgrade to Pro to add more.`,
+      );
+    }
+  }
+
   await supabase.from("habits").insert({
     user_id: user.id,
     name,

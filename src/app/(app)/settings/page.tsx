@@ -6,6 +6,10 @@ import { PushSubscriptionButton } from "@/components/PushSubscriptionButton";
 import { IntegrationsSection } from "@/components/IntegrationsSection";
 import { SetupChecklist } from "@/components/SetupChecklist";
 import { ShortcutsSection } from "@/components/ShortcutsSection";
+import { ManageSubscriptionButton } from "@/components/CheckoutButton";
+import { DataPrivacySection } from "@/components/DataPrivacySection";
+import { getSubscription } from "@/lib/billing";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -62,6 +66,9 @@ export default async function SettingsPage() {
     .select("*", { count: "exact", head: true })
     .eq("user_id", user.id);
 
+  const subscription = await getSubscription(user.id);
+  const stripeConfigured = Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PRICE_PRO);
+
   // Build base URL
   const h = await headers();
   const proto = h.get("x-forwarded-proto") ?? "http";
@@ -84,6 +91,42 @@ export default async function SettingsPage() {
           </div>
         </div>
         <AccountNameForm currentName={currentName} />
+      </section>
+
+      {/* Billing */}
+      <section className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200/70 p-6">
+        <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+          <div>
+            <h2 className="text-base font-bold text-slate-900 tracking-tight">Plan & billing</h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              You&apos;re on the{" "}
+              <span className={`font-bold ${subscription.plan === "pro" ? "text-emerald-700" : "text-slate-700"}`}>
+                {subscription.plan === "pro" ? "Pro" : "Free"}
+              </span>{" "}
+              plan.
+              {subscription.plan === "pro" && subscription.currentPeriodEnd && (
+                <>
+                  {" "}
+                  {subscription.cancelAtPeriodEnd
+                    ? `Cancels on ${subscription.currentPeriodEnd.toLocaleDateString()}.`
+                    : `Renews ${subscription.currentPeriodEnd.toLocaleDateString()}.`}
+                </>
+              )}
+            </p>
+          </div>
+          {subscription.plan === "pro" ? (
+            <ManageSubscriptionButton />
+          ) : stripeConfigured ? (
+            <Link
+              href="/pricing"
+              className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-sm font-semibold shadow-sm transition"
+            >
+              Upgrade to Pro →
+            </Link>
+          ) : (
+            <span className="text-[10px] italic text-slate-500">Stripe not configured</span>
+          )}
+        </div>
       </section>
 
       {/* Push subscription */}
@@ -158,6 +201,15 @@ export default async function SettingsPage() {
           </p>
         </div>
         <ShortcutsSection baseUrl={baseUrl} initialTokens={shortcutTokens ?? []} />
+      </section>
+
+      {/* Data & privacy */}
+      <section className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200/70 p-6">
+        <div className="mb-5">
+          <h2 className="text-base font-bold text-slate-900 tracking-tight">Data &amp; privacy</h2>
+          <p className="text-xs text-slate-500 mt-0.5">Your data, your choice.</p>
+        </div>
+        <DataPrivacySection />
       </section>
 
       {/* Email */}
