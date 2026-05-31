@@ -115,15 +115,34 @@ function drawCard(canvas: HTMLCanvasElement, p: Props) {
   const urlW = ctx.measureText(url).width;
   ctx.fillText(url, W - 64 - urlW, H - 50);
 
-  // Small ht monogram in corner
-  ctx.fillStyle = "rgba(255,255,255,0.08)";
+  // Logo mark (checkmark in progress ring) in corner — matches the PWA icon
+  const mr = 12, mx = W - 64 - 56, my = H - 76, ms = 48;
+  ctx.fillStyle = "rgba(255,255,255,0.10)";
   ctx.beginPath();
-  const mr = 16, mx = W - 64 - 64, my = H - 70;
-  ctx.roundRect(mx, my, 48, 48, mr);
+  ctx.roundRect(mx, my, ms, ms, mr);
   ctx.fill();
-  ctx.fillStyle = "rgba(255,255,255,0.85)";
-  ctx.font = "900 22px -apple-system, system-ui, sans-serif";
-  ctx.fillText("ht", mx + 9, my + 13);
+  // Progress ring (78% arc, starting at top)
+  const lcx = mx + ms / 2, lcy = my + ms / 2, r = ms * 0.32;
+  ctx.strokeStyle = "rgba(255,255,255,0.15)";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(lcx, lcy, r, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.strokeStyle = "#34d399";
+  ctx.lineWidth = 3;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.arc(lcx, lcy, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * 0.78);
+  ctx.stroke();
+  // Checkmark
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 3.5;
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+  ctx.moveTo(lcx - 8, lcy + 1);
+  ctx.lineTo(lcx - 2, lcy + 7);
+  ctx.lineTo(lcx + 9, lcy - 5);
+  ctx.stroke();
 }
 
 export function StreakShareButton(props: Props) {

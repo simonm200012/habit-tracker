@@ -1,5 +1,5 @@
 // habit-tracker service worker — offline shell + push notifications.
-const CACHE_VERSION = "ht-v2";
+const CACHE_VERSION = "ht-v3";
 const SHELL_ASSETS = [
   "/manifest.json",
   "/icon-192.png",

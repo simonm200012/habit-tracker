@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { logout } from "@/app/login/actions";
 import { ThemeControls } from "./ThemeControls";
+import { Logo } from "./Logo";
 
 const NAV = [
   {
@@ -63,9 +64,7 @@ export function Sidebar({ email, displayName }: { email: string; displayName: st
       {/* Mobile top bar */}
       <div className="lg:hidden flex items-center justify-between px-4 h-14 border-b border-slate-200 bg-white sticky top-0 z-30">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-slate-900 to-slate-700 flex items-center justify-center text-white font-bold text-xs">
-            ht
-          </div>
+          <Logo size={32} />
           <span className="font-bold text-slate-900 tracking-tight">habit-tracker</span>
         </div>
         <button
@@ -92,9 +91,7 @@ export function Sidebar({ email, displayName }: { email: string; displayName: st
         }`}
       >
         <div className="h-16 flex items-center gap-3 px-6 border-b border-slate-200">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-slate-900 to-slate-700 flex items-center justify-center text-white font-bold text-sm shadow-sm">
-            ht
-          </div>
+          <Logo size={36} />
           <div>
             <h1 className="font-bold text-slate-900 tracking-tight leading-none">
               habit-tracker

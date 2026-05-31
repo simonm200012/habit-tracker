@@ -1,0 +1,48 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="55%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </linearGradient>
+    <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#34d399"/>
+      <stop offset="55%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.10"/>
+      <stop offset="60%" stop-color="#ffffff" stop-opacity="0.03"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="ringShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="14"/>
+      <feOffset dx="0" dy="10" result="off"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.55"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background tile -->
+  <rect x="0" y="0" width="1024" height="1024" rx="225.28" ry="225.28" fill="url(#tile)"/>
+  <rect x="0" y="0" width="1024" height="1024" rx="225.28" ry="225.28" fill="url(#glow)"/>
+
+  <!-- Track ring (faint) -->
+  <circle cx="512" cy="512" r="368.64"
+          fill="none" stroke="#ffffff" stroke-opacity="0.08" stroke-width="73.728"/>
+
+  <!-- Progress ring -->
+  <path d="M 512 143.36 A 368.64 368.64 0 1 1 149.88962789137622 442.9237521911184"
+        fill="none" stroke="url(#ring)" stroke-width="73.728"
+        stroke-linecap="round" filter="url(#ringShadow)"/>
+
+  <!-- Endpoint dot for polish -->
+  <circle cx="149.88962789137622" cy="442.9237521911184" r="36.864" fill="#34d399"/>
+
+  <!-- Checkmark -->
+  <path d="M 348.16 522.24
+           L 471.04 634.88
+           L 696.32 409.6"
+        fill="none" stroke="#ffffff" stroke-width="87.04"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

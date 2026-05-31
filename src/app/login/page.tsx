@@ -1,4 +1,5 @@
 import { login, signup } from "./actions";
+import { Logo } from "@/components/nav/Logo";
 
 export default function LoginPage({
   searchParams,
@@ -18,9 +19,7 @@ async function LoginForm({
     <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 via-slate-50 to-stone-100 p-4">
       <div className="w-full max-w-sm">
         <div className="flex items-center justify-center gap-3 mb-6">
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-slate-900 to-slate-700 flex items-center justify-center text-white font-bold shadow-lg shadow-slate-900/20">
-            ht
-          </div>
+          <Logo size={56} />
         </div>
         <div className="bg-white rounded-2xl shadow-xl shadow-slate-900/5 ring-1 ring-slate-200/70 p-8">
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight mb-1">
